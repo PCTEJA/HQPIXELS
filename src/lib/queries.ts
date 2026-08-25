@@ -39,6 +39,8 @@ export const queryKeys = {
   checkoutStatus: (id: string) => ['checkout-status', id] as const,
   adminQueue: (status: string) => ['admin', 'queue', status] as const,
   adminHealth: ['admin', 'health'] as const,
+  adminAudit: (limit: number, before?: string) =>
+    ['admin', 'audit', limit, before ?? 'latest'] as const,
 };
 
 // -----------------------------------------------------------------------------
@@ -357,9 +359,7 @@ export function useCreateReservation(): UseMutationResult<
   });
 }
 
-export function useSetPlacementDetails(
-  reservationId: string,
-): UseMutationResult<
+export function useSetPlacementDetails(reservationId: string): UseMutationResult<
   {
     ready: boolean;
     state: string;
@@ -521,5 +521,208 @@ export async function uploadImageToProvider(
 
     xhr.timeout = 120_000;
     xhr.send(form);
+  });
+}
+
+// -----------------------------------------------------------------------------
+// Admin queries
+// -----------------------------------------------------------------------------
+
+export type ModerationStatus = 'pending_review' | 'active' | 'rejected' | 'disabled' | 'all';
+
+export interface AdminQueueItem {
+  readonly placementId: string;
+  readonly reservationId: string;
+  readonly title: string;
+  readonly altText: string;
+  readonly destinationUrl: string;
+  readonly destinationHost: string;
+  readonly ownerEmail: string;
+  readonly ownerDisplayName: string | null;
+  readonly x: number;
+  readonly y: number;
+  readonly w: number;
+  readonly h: number;
+  readonly logicalPixels: number;
+  readonly quotedTotalCents: number;
+  readonly placementStatus: string;
+  readonly moderationState: string;
+  readonly imageReviewUrl: string | null;
+  readonly createdAt: string;
+  readonly paidAt: string | null;
+}
+
+export interface AdminQueueResponse {
+  readonly items: readonly AdminQueueItem[];
+  readonly nextCursor: string | null;
+  readonly status: ModerationStatus;
+}
+
+export function useAdminQueue(
+  status: ModerationStatus,
+  enabled: boolean,
+): UseQueryResult<AdminQueueResponse, ApiRequestError> {
+  return useQuery({
+    queryKey: queryKeys.adminQueue(status),
+    queryFn: async () =>
+      (await api.get<AdminQueueResponse>(`/api/admin/queue?status=${status}`)).data,
+    enabled,
+    staleTime: 30_000,
+    retry: (attempt, error) => attempt < 1 && !error.isAuthError,
+  });
+}
+
+export interface AdminHealthResponse {
+  readonly dbConnected: boolean;
+  readonly lastJobRun: {
+    readonly job: string;
+    readonly runAt: string;
+    readonly status: string;
+    readonly durationMs: number;
+  } | null;
+  readonly pendingPlacements: number;
+  readonly activeReservations: number;
+  readonly recentErrors: readonly {
+    readonly message: string;
+    readonly count: number;
+    readonly lastSeen: string;
+  }[];
+  readonly analyticsBacklog: number;
+  readonly environment: string;
+  readonly imagePipelineConfigured: boolean;
+  readonly manualApprovalRequired: boolean;
+  readonly adminAllowlistSize: number;
+}
+
+export function useAdminHealth(
+  enabled: boolean,
+): UseQueryResult<AdminHealthResponse, ApiRequestError> {
+  return useQuery({
+    queryKey: queryKeys.adminHealth,
+    queryFn: async () => (await api.get<AdminHealthResponse>('/api/admin/health')).data,
+    enabled,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+    retry: (attempt, error) => attempt < 1 && !error.isAuthError,
+  });
+}
+
+export interface AdminAuditEntry {
+  readonly id: string;
+  readonly action: string;
+  readonly targetType: string;
+  readonly targetId: string | null;
+  readonly actorId: string | null;
+  readonly actorLabel: string;
+  readonly detail: Record<string, unknown>;
+  readonly createdAt: string;
+  readonly requestId: string | null;
+}
+
+export interface AdminAuditResponse {
+  readonly items: readonly AdminAuditEntry[];
+}
+
+export function useAdminAudit(
+  enabled: boolean,
+  limit = 50,
+  before?: string,
+): UseQueryResult<AdminAuditResponse, ApiRequestError> {
+  return useQuery({
+    queryKey: ['admin', 'audit', limit, before ?? 'latest'],
+    queryFn: async () => {
+      const params = new URLSearchParams({ limit: String(limit) });
+      if (before) params.set('before', before);
+      return (await api.get<AdminAuditResponse>(`/api/admin/audit?${params.toString()}`)).data;
+    },
+    enabled,
+    staleTime: 30_000,
+    retry: (attempt, error) => attempt < 1 && !error.isAuthError,
+  });
+}
+
+// -----------------------------------------------------------------------------
+// Admin mutations
+// -----------------------------------------------------------------------------
+
+export type ModerationDecision = 'approve' | 'reject' | 'disable' | 'reenable';
+
+export interface ModerationResult {
+  readonly decision: ModerationDecision;
+  readonly placementId: string;
+  readonly manifestVersion?: number;
+  readonly takenDown?: boolean;
+  readonly refund?: {
+    readonly attempted: boolean;
+    readonly succeeded: boolean;
+    readonly amountCents: number | null;
+    readonly needsManualAction: boolean;
+  };
+}
+
+export function useModerate(): UseMutationResult<
+  ModerationResult,
+  ApiRequestError,
+  { placementId: string; decision: ModerationDecision; reason?: string; refund?: boolean }
+> {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (variables) =>
+      (await api.post<ModerationResult>('/api/admin/moderate', variables)).data,
+    onSuccess: () => {
+      // Invalidate queue and manifest after moderation
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'queue'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.manifest });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.adminHealth });
+    },
+    retry: false,
+  });
+}
+
+export interface BulkDisableResult {
+  readonly host: string;
+  readonly disabled: number;
+}
+
+export function useBulkDisableHost(): UseMutationResult<
+  BulkDisableResult,
+  ApiRequestError,
+  { host: string; reason: string }
+> {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (variables) =>
+      (await api.post<BulkDisableResult>('/api/admin/disable-host', variables)).data,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'queue'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.manifest });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.adminHealth });
+    },
+    retry: false,
+  });
+}
+
+export interface ManifestRebuildResult {
+  readonly version: number;
+  readonly placementCount: number;
+  readonly durationMs: number;
+}
+
+export function useRebuildManifest(): UseMutationResult<
+  ManifestRebuildResult,
+  ApiRequestError,
+  void
+> {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () =>
+      (await api.post<ManifestRebuildResult>('/api/admin/manifest/rebuild', {})).data,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.manifest });
+    },
+    retry: false,
   });
 }
