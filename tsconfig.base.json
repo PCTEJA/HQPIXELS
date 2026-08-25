@@ -1,0 +1,35 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "moduleDetection": "force",
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+
+    /* Strictness — all of these are load-bearing for correctness. */
+    "strict": true,
+    "noImplicitOverride": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "allowUnusedLabels": false,
+    "allowUnreachableCode": false,
+    "forceConsistentCasingInFileNames": true,
+    "useUnknownInCatchVariables": true,
+
+    "noEmit": true,
+    "declaration": false,
+    "sourceMap": true,
+    "baseUrl": ".",
+    "paths": {
+      "@shared/*": ["./shared/*"],
+      "@/*": ["./src/*"]
+    }
+  }
+}

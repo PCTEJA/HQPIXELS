@@ -1,0 +1,551 @@
+/*
+ * HQPixels — "Obsidian Gallery"
+ * =============================================================================
+ * An original visual language for this product. Deep obsidian ground, electric
+ * cyan for technology/interaction, warm signal amber reserved exclusively for
+ * the purchase action, arctic white text on a restrained blue-grey scale.
+ *
+ * Rules that keep it coherent:
+ *   * Amber (--color-cta) is used ONLY for the primary purchase action. If it
+ *     appears anywhere else it stops meaning "this is how you buy".
+ *   * Cyan is interaction and focus. Never a call to action.
+ *   * Purple is deliberately absent as a dominant accent. The brand mark has a
+ *     cool cast, but the interface must work with a future transparent-background
+ *     logo export and must not inherit a purple tint.
+ *   * Every foreground/background pair used for text is asserted to meet WCAG AA
+ *     by tests/unit/design-tokens.test.ts. Change a token, run the test.
+ */
+
+@import 'tailwindcss';
+
+@theme {
+  /* --- ground ------------------------------------------------------------- */
+  /* Not pure black: a hint of blue keeps the grid lines from vibrating and
+     gives the glass surfaces something to sit on. */
+  --color-obsidian: #070a0f;
+  --color-surface: #101720;
+  --color-surface-raised: #17202c;
+  --color-surface-sunken: #0a0f16;
+
+  /* --- ink ---------------------------------------------------------------- */
+  --color-ink: #eaf7ff;
+  --color-ink-muted: #9fb3c8;
+  /* Dimmest text tone that still clears 4.5:1 on --color-obsidian. */
+  --color-ink-subtle: #7d93a8;
+
+  /* --- accents ------------------------------------------------------------ */
+  --color-cyan: #28d7f4;
+  --color-cyan-dim: #1aa8c0;
+  --color-cta: #ffc857;
+  --color-cta-hover: #ffd47a;
+  --color-success: #77e6c5;
+  --color-danger: #ff6b6b;
+  --color-warning: #ffb454;
+
+  /* --- lines -------------------------------------------------------------- */
+  --color-hairline: #1e2936;
+  --color-hairline-bright: #2c3d4f;
+  /* The visible edge of an interactive control. WCAG 1.4.11 needs 3:1 against
+     the adjacent background, which the decorative hairline above does not reach
+     on the sunken input ground. See tests/unit/design-tokens.test.ts. */
+  --color-control-border: #566a7c;
+  /* The wall's grid. Very low contrast on purpose: it should read as texture,
+     not as a table. */
+  --color-grid: #131c26;
+
+  /* --- typography --------------------------------------------------------- */
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  /* --- motion ------------------------------------------------------------- */
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --duration-fast: 120ms;
+  --duration-base: 220ms;
+  --duration-slow: 420ms;
+
+  /* --- radii and depth ---------------------------------------------------- */
+  --radius-card: 0.75rem;
+  --radius-control: 0.5rem;
+  --shadow-glass: 0 1px 0 0 rgb(255 255 255 / 0.04) inset, 0 8px 32px -12px rgb(0 0 0 / 0.8);
+  --shadow-lift: 0 12px 48px -16px rgb(0 0 0 / 0.9);
+}
+
+/* =============================================================================
+   Base
+   ========================================================================== */
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    color-scheme: dark;
+    -webkit-text-size-adjust: 100%;
+    /* Smooth in-page anchors, but not for people who asked us not to animate. */
+    scroll-behavior: smooth;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    background-color: var(--color-obsidian);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    /* Stops the whole page rubber-banding on iOS while the canvas handles its
+       own gestures. */
+    overscroll-behavior-y: none;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    font-weight: 600;
+    margin: 0;
+  }
+
+  p {
+    margin: 0;
+  }
+
+  a {
+    color: var(--color-cyan);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+  }
+
+  /* Focus is never removed, only restyled. A visible focus ring is the whole
+     keyboard experience. */
+  :focus-visible {
+    outline: 2px solid var(--color-cyan);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  button {
+    font: inherit;
+    color: inherit;
+  }
+
+  /* Canvas must not be selectable or long-press-menu-able: those gestures
+     conflict with pan and pinch-zoom. */
+  canvas {
+    display: block;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--color-cyan) 30%, transparent);
+    color: var(--color-ink);
+  }
+
+  /* Scrollbars, dark-theme aware. */
+  * {
+    scrollbar-color: var(--color-hairline-bright) transparent;
+    scrollbar-width: thin;
+  }
+
+  .noscript-notice {
+    max-width: 34rem;
+    margin: 4rem auto;
+    padding: 0 1.5rem;
+    text-align: center;
+  }
+  .noscript-notice h1 {
+    margin-bottom: 0.75rem;
+  }
+}
+
+/* =============================================================================
+   prefers-reduced-motion
+   ==========================================================================
+   Not a token: a hard, global override. Anyone who has asked their OS to reduce
+   motion gets no transitions, no smooth scrolling, and no wall animation. The
+   canvas reads the same preference at runtime and skips its easing.
+*/
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* =============================================================================
+   Components
+   ========================================================================== */
+
+@layer components {
+  /* --- frosted glass surface --------------------------------------------- */
+  /* The thin bright hairline at the top edge is the detail that echoes the
+     HQPixels mark without importing its colour. */
+  .glass {
+    background: color-mix(in oklab, var(--color-surface) 82%, transparent);
+    border: 1px solid var(--color-hairline);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-glass);
+    backdrop-filter: blur(12px) saturate(120%);
+  }
+
+  .glass-raised {
+    background: color-mix(in oklab, var(--color-surface-raised) 88%, transparent);
+    border: 1px solid var(--color-hairline-bright);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-lift);
+    backdrop-filter: blur(16px) saturate(130%);
+  }
+
+  /* --- buttons ----------------------------------------------------------- */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    /* 44px minimum touch target. */
+    min-height: 2.75rem;
+    padding: 0.625rem 1.125rem;
+    border: 1px solid transparent;
+    border-radius: var(--radius-control);
+    font-weight: 600;
+    font-size: 0.9375rem;
+    line-height: 1.2;
+    cursor: pointer;
+    text-decoration: none;
+    transition:
+      background-color var(--duration-fast) var(--ease-out-quart),
+      border-color var(--duration-fast) var(--ease-out-quart),
+      transform var(--duration-fast) var(--ease-out-quart);
+    white-space: nowrap;
+  }
+
+  .btn:disabled,
+  .btn[aria-disabled='true'] {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .btn:not(:disabled):active {
+    transform: translateY(1px);
+  }
+
+  /* THE purchase action. Amber appears nowhere else. */
+  .btn-cta {
+    background: var(--color-cta);
+    color: var(--color-obsidian);
+  }
+  .btn-cta:not(:disabled):hover {
+    background: var(--color-cta-hover);
+  }
+
+  .btn-primary {
+    background: color-mix(in oklab, var(--color-cyan) 16%, transparent);
+    border-color: color-mix(in oklab, var(--color-cyan) 45%, transparent);
+    color: var(--color-cyan);
+  }
+  .btn-primary:not(:disabled):hover {
+    background: color-mix(in oklab, var(--color-cyan) 26%, transparent);
+    border-color: var(--color-cyan);
+  }
+
+  .btn-ghost {
+    background: transparent;
+    border-color: var(--color-control-border);
+    color: var(--color-ink);
+  }
+  .btn-ghost:not(:disabled):hover {
+    background: var(--color-surface);
+    border-color: var(--color-ink-subtle);
+  }
+
+  .btn-danger {
+    background: color-mix(in oklab, var(--color-danger) 14%, transparent);
+    border-color: color-mix(in oklab, var(--color-danger) 45%, transparent);
+    color: var(--color-danger);
+  }
+
+  /* --- form controls ----------------------------------------------------- */
+  .field-label {
+    display: block;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--color-ink-muted);
+    margin-bottom: 0.375rem;
+  }
+
+  .field-input {
+    display: block;
+    width: 100%;
+    min-height: 2.75rem;
+    padding: 0.625rem 0.75rem;
+    background: var(--color-surface-sunken);
+    border: 1px solid var(--color-control-border);
+    border-radius: var(--radius-control);
+    color: var(--color-ink);
+    font: inherit;
+    transition: border-color var(--duration-fast) var(--ease-out-quart);
+  }
+  .field-input::placeholder {
+    color: var(--color-ink-subtle);
+  }
+  .field-input:hover {
+    border-color: var(--color-ink-subtle);
+  }
+  .field-input[aria-invalid='true'] {
+    border-color: var(--color-danger);
+  }
+
+  .field-hint {
+    display: block;
+    margin-top: 0.375rem;
+    font-size: 0.8125rem;
+    color: var(--color-ink-subtle);
+  }
+
+  .field-error {
+    display: block;
+    margin-top: 0.375rem;
+    font-size: 0.8125rem;
+    color: var(--color-danger);
+    font-weight: 500;
+  }
+
+  /* --- checkbox ---------------------------------------------------------- */
+  /* Sized generously because this is the terms-acceptance control and it must
+     be unmistakably unchecked until a person checks it. */
+  .checkbox {
+    appearance: none;
+    flex-shrink: 0;
+    width: 1.25rem;
+    height: 1.25rem;
+    margin: 0.125rem 0 0;
+    background: var(--color-surface-sunken);
+    border: 1.5px solid var(--color-control-border);
+    border-radius: 0.25rem;
+    cursor: pointer;
+    position: relative;
+    transition: background-color var(--duration-fast) var(--ease-out-quart);
+  }
+  .checkbox:hover {
+    border-color: var(--color-cyan);
+  }
+  .checkbox:checked {
+    background: var(--color-cyan);
+    border-color: var(--color-cyan);
+  }
+  .checkbox:checked::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--color-obsidian);
+    clip-path: polygon(17% 47%, 28% 36%, 42% 50%, 72% 20%, 83% 31%, 42% 72%);
+  }
+
+  /* --- badges ------------------------------------------------------------ */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    border: 1px solid transparent;
+  }
+  .badge-verified {
+    background: color-mix(in oklab, var(--color-success) 14%, transparent);
+    border-color: color-mix(in oklab, var(--color-success) 40%, transparent);
+    color: var(--color-success);
+  }
+  .badge-founding {
+    background: color-mix(in oklab, var(--color-cta) 14%, transparent);
+    border-color: color-mix(in oklab, var(--color-cta) 40%, transparent);
+    color: var(--color-cta);
+  }
+  .badge-sponsored {
+    background: var(--color-surface-raised);
+    border-color: var(--color-hairline-bright);
+    color: var(--color-ink-muted);
+  }
+  .badge-pending {
+    background: color-mix(in oklab, var(--color-warning) 12%, transparent);
+    border-color: color-mix(in oklab, var(--color-warning) 38%, transparent);
+    color: var(--color-warning);
+  }
+
+  /* --- the grid-line motif ----------------------------------------------- */
+  /* A faint 10px lattice, the same pitch as one purchasable unit. Used behind
+     hero sections so the whole site reads as part of the wall. */
+  .grid-motif {
+    background-image:
+      linear-gradient(to right, var(--color-grid) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--color-grid) 1px, transparent 1px);
+    background-size: 40px 40px;
+    background-position: center center;
+  }
+
+  .grid-motif-fade {
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 20%, transparent 75%);
+  }
+
+  /* --- accessible-only text ---------------------------------------------- */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  /* Skip link: hidden until focused, then unmissable. */
+  .skip-link {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.5rem;
+    z-index: 100;
+    padding: 0.75rem 1rem;
+    background: var(--color-cta);
+    color: var(--color-obsidian);
+    font-weight: 600;
+    border-radius: var(--radius-control);
+    transform: translateY(-200%);
+    transition: transform var(--duration-fast) var(--ease-out-quart);
+  }
+  .skip-link:focus {
+    transform: translateY(0);
+  }
+
+  /* --- bottom sheet (mobile) --------------------------------------------- */
+  .sheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 40;
+    max-height: 75dvh;
+    overflow-y: auto;
+    border-radius: 1rem 1rem 0 0;
+    border-top: 1px solid var(--color-hairline-bright);
+    background: color-mix(in oklab, var(--color-surface) 94%, transparent);
+    backdrop-filter: blur(20px) saturate(130%);
+    box-shadow: var(--shadow-lift);
+    /* Clear the iOS home indicator. */
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+
+  /* --- tables ------------------------------------------------------------ */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9375rem;
+  }
+  .data-table th {
+    text-align: left;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-ink-subtle);
+    font-weight: 600;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--color-hairline);
+    white-space: nowrap;
+  }
+  .data-table td {
+    padding: 0.625rem 0.75rem;
+    border-bottom: 1px solid var(--color-grid);
+    vertical-align: top;
+  }
+  .data-table tbody tr:hover {
+    background: color-mix(in oklab, var(--color-cyan) 4%, transparent);
+  }
+
+  /* Wide content must scroll inside its own container, never the page body. */
+  .scroll-x {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* --- numeric display --------------------------------------------------- */
+  .tabular {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
+}
+
+/* =============================================================================
+   Utilities
+   ========================================================================== */
+
+@layer utilities {
+  /* One-off activation flash when a placement goes live. Modest by design:
+     a big celebration animation on a paid ad is the kind of thing that reads as
+     pressure rather than delight. */
+  @keyframes hq-activate {
+    0% {
+      box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-success) 70%, transparent);
+    }
+    100% {
+      box-shadow: 0 0 0 14px transparent;
+    }
+  }
+
+  .animate-activate {
+    animation: hq-activate var(--duration-slow) var(--ease-out-quart) 1;
+  }
+
+  @keyframes hq-pulse-ring {
+    0%,
+    100% {
+      opacity: 0.35;
+    }
+    50% {
+      opacity: 0.9;
+    }
+  }
+
+  .animate-pulse-ring {
+    animation: hq-pulse-ring 2.4s ease-in-out infinite;
+  }
+
+  /* Live-region announcements are visually hidden but must not be display:none,
+     or screen readers stop watching them. */
+  .live-region {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+  }
+}

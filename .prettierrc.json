@@ -1,0 +1,14 @@
+{
+  "semi": true,
+  "singleQuote": true,
+  "trailingComma": "all",
+  "printWidth": 100,
+  "tabWidth": 2,
+  "arrowParens": "always",
+  "endOfLine": "lf",
+  "overrides": [
+    { "files": ["*.jsonc"], "options": { "parser": "jsonc", "trailingComma": "none" } },
+    { "files": ["*.sql"], "options": { "printWidth": 100 } },
+    { "files": ["*.md"], "options": { "proseWrap": "preserve" } }
+  ]
+}

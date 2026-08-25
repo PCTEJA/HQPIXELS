@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- HQPixels favicon: 3x3 grid mark in Obsidian Gallery palette -->
+  <!-- Ground: #070A0F, Centre: #28D7F4 (cyan accent) -->
+  <rect width="32" height="32" fill="#070A0F"/>
+  <g fill="#1A1F28">
+    <!-- Grid cells (3x3 layout with gaps) -->
+    <rect x="2" y="2" width="8" height="8"/>
+    <rect x="12" y="2" width="8" height="8"/>
+    <rect x="22" y="2" width="8" height="8"/>
+    <rect x="2" y="12" width="8" height="8"/>
+    <rect x="22" y="12" width="8" height="8"/>
+    <rect x="2" y="22" width="8" height="8"/>
+    <rect x="12" y="22" width="8" height="8"/>
+    <rect x="22" y="22" width="8" height="8"/>
+  </g>
+  <!-- Centre square in cyan -->
+  <rect x="12" y="12" width="8" height="8" fill="#28D7F4"/>
+</svg>

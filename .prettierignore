@@ -1,0 +1,8 @@
+dist/
+coverage/
+.wrangler/
+playwright-report/
+test-results/
+pnpm-lock.yaml
+worker/worker-env.d.ts
+supabase/.temp/

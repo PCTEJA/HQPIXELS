@@ -1,0 +1,16 @@
+{
+  "name": "HQPixels",
+  "short_name": "HQPixels",
+  "description": "Own a square in the next chapter of the web",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#070A0F",
+  "background_color": "#070A0F",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

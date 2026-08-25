@@ -1,0 +1,131 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+
+  "name": "hqpixels",
+  "main": "worker/index.ts",
+  "compatibility_date": "2025-03-20",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // Static assets are served by Cloudflare's asset layer (free, cached at the
+  // edge, never touches the Worker) EXCEPT for the prefixes in
+  // `run_worker_first`, which must reach the API. Without that list,
+  // `not_found_handling: single-page-application` would return index.html for
+  // /api/* requests.
+  "assets": {
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*", "/go/*", "/sitemap.xml", "/robots.txt"]
+  },
+
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 0.1
+  },
+
+  // ---------------------------------------------------------------------------
+  // Bindings
+  //
+  // The KV namespace IDs below are PLACEHOLDERS. Create them once per
+  // environment and paste the returned IDs here (they are not secrets):
+  //
+  //   wrangler kv namespace create CACHE_KV
+  //   wrangler kv namespace create RATE_KV
+  //
+  // See DEPLOYMENT.md step 10.
+  // ---------------------------------------------------------------------------
+  "kv_namespaces": [
+    {
+      "binding": "CACHE_KV",
+      "id": "REPLACE_WITH_CACHE_KV_ID",
+      "preview_id": "REPLACE_WITH_CACHE_KV_PREVIEW_ID"
+    },
+    {
+      "binding": "RATE_KV",
+      "id": "REPLACE_WITH_RATE_KV_ID",
+      "preview_id": "REPLACE_WITH_RATE_KV_PREVIEW_ID"
+    }
+  ],
+
+  "durable_objects": {
+    "bindings": [
+      { "name": "RATE_LIMITER", "class_name": "RateLimiterDO" },
+      { "name": "ANALYTICS_BUFFER", "class_name": "AnalyticsBufferDO" }
+    ]
+  },
+
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["RateLimiterDO", "AnalyticsBufferDO"]
+    }
+  ],
+
+  // Scheduled work. Each cron is dispatched by expression in worker/scheduled.ts.
+  //   */2  — reservation expiry + Stripe reconciliation (tight loop, cheap)
+  //   7/15 — analytics flush safety net + manifest rebuild if dirty
+  //   23 * — leaderboard snapshots
+  //   40 3 — destination link health recheck (daily)
+  "triggers": {
+    "crons": ["*/2 * * * *", "7,22,37,52 * * * *", "23 * * * *", "40 3 * * *"]
+  },
+
+  "vars": {
+    "ENVIRONMENT": "development",
+    "PUBLIC_SITE_URL": "http://localhost:5173",
+    "REQUIRE_MANUAL_APPROVAL": "true",
+    "ADMIN_SURFACE_DISABLED": "false"
+  },
+
+  "env": {
+    "staging": {
+      "name": "hqpixels-staging",
+      "vars": {
+        "ENVIRONMENT": "staging",
+        "PUBLIC_SITE_URL": "https://staging.hqpixels.com",
+        "REQUIRE_MANUAL_APPROVAL": "true",
+        "ADMIN_SURFACE_DISABLED": "false"
+      },
+      "routes": [{ "pattern": "staging.hqpixels.com", "custom_domain": true }],
+      "kv_namespaces": [
+        { "binding": "CACHE_KV", "id": "REPLACE_WITH_STAGING_CACHE_KV_ID" },
+        { "binding": "RATE_KV", "id": "REPLACE_WITH_STAGING_RATE_KV_ID" }
+      ],
+      "durable_objects": {
+        "bindings": [
+          { "name": "RATE_LIMITER", "class_name": "RateLimiterDO" },
+          { "name": "ANALYTICS_BUFFER", "class_name": "AnalyticsBufferDO" }
+        ]
+      },
+      "triggers": { "crons": ["*/5 * * * *", "7,37 * * * *", "23 * * * *", "40 3 * * *"] },
+      "observability": { "enabled": true, "head_sampling_rate": 1 }
+    },
+
+    "production": {
+      "name": "hqpixels-production",
+      "vars": {
+        "ENVIRONMENT": "production",
+        "PUBLIC_SITE_URL": "https://hqpixels.com",
+        "REQUIRE_MANUAL_APPROVAL": "true",
+        "ADMIN_SURFACE_DISABLED": "false"
+      },
+      "routes": [{ "pattern": "hqpixels.com", "custom_domain": true }],
+      "kv_namespaces": [
+        { "binding": "CACHE_KV", "id": "REPLACE_WITH_PROD_CACHE_KV_ID" },
+        { "binding": "RATE_KV", "id": "REPLACE_WITH_PROD_RATE_KV_ID" }
+      ],
+      "durable_objects": {
+        "bindings": [
+          { "name": "RATE_LIMITER", "class_name": "RateLimiterDO" },
+          { "name": "ANALYTICS_BUFFER", "class_name": "AnalyticsBufferDO" }
+        ]
+      },
+      "triggers": {
+        "crons": ["*/2 * * * *", "7,22,37,52 * * * *", "23 * * * *", "40 3 * * *"]
+      },
+      // Requires the Workers Paid plan. Caps a runaway request so a single
+      // pathological input cannot burn CPU minutes (denial-of-wallet control).
+      "limits": { "cpu_ms": 200 },
+      "observability": { "enabled": true, "head_sampling_rate": 0.2 }
+    }
+  }
+}

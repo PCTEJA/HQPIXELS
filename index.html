@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+
+    <!--
+      NOTE FOR MAINTAINERS
+      There are deliberately NO inline <script> or <style> blocks in this file.
+      The Content-Security-Policy uses script-src 'self' with no nonce and no
+      'unsafe-inline', so an inline script would be blocked at runtime.
+      scripts/assert-no-inline-scripts.mjs fails the build if one appears.
+    -->
+
+    <title>HQPixels — Own a square in the next chapter of the web</title>
+    <meta
+      name="description"
+      content="HQPixels is a curated 1000 x 1000 pixel wall. Claim a permanent plot for your product, portfolio, community or idea, from $10."
+    />
+    <link rel="canonical" href="https://hqpixels.com/" />
+
+    <meta name="theme-color" content="#070A0F" />
+    <meta name="color-scheme" content="dark" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="HQPixels" />
+    <meta property="og:title" content="HQPixels — Own a square in the next chapter of the web" />
+    <meta
+      property="og:description"
+      content="Claim permanent visual space on a curated 1000 x 1000 pixel wall. Real inventory, transparent pricing, from $10."
+    />
+    <meta property="og:url" content="https://hqpixels.com/" />
+    <!-- NOTE: og-image.png is an owner-supplied asset. Placeholder uses favicon. -->
+    <meta property="og:image" content="https://hqpixels.com/favicon.svg" />
+    <meta property="og:image:type" content="image/svg+xml" />
+
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="HQPixels — Own a square in the next chapter of the web" />
+    <meta
+      name="twitter:description"
+      content="Claim permanent visual space on a curated 1000 x 1000 pixel wall. From $10."
+    />
+    <!-- NOTE: twitter:image and apple-touch-icon.png are owner-supplied assets -->
+
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/favicon.svg" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+
+    <!--
+      Preconnect only to origins the first paint genuinely needs. Stripe and
+      Turnstile are lazy-loaded on the claim flow, so preconnecting to them here
+      would cost every visitor a handshake they will never use.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+    />
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript>
+      <div class="noscript-notice">
+        <h1>HQPixels needs JavaScript</h1>
+        <p>
+          The pixel wall is an interactive canvas, so it needs JavaScript enabled. If you would
+          rather not enable it, email
+          <a href="mailto:hello@hqpixels.com">hello@hqpixels.com</a> and we will help you claim a
+          plot directly.
+        </p>
+      </div>
+    </noscript>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

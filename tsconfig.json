@@ -1,0 +1,9 @@
+{
+  "//": "Umbrella config for editors. Real type-checking runs the three project configs (see `pnpm typecheck`). Client and Worker cannot share one config because their global type environments (DOM vs. Cloudflare Workers) conflict.",
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.worker.json" },
+    { "path": "./tsconfig.node.json" }
+  ]
+}
