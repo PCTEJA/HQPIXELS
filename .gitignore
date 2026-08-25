@@ -11,15 +11,13 @@ blob-report/
 supabase/.temp/
 supabase/.branches/
 
-# Never commit real secrets. Only .env.example belongs in git.
+# Secrets and environment variables
 .env
 .env.*
-!.env.example
 *.pem
 *.key
 .dev.vars
 .dev.vars.*
-!.dev.vars.example
 
 # OS / editor noise
 .DS_Store
