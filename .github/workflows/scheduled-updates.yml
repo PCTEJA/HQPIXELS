@@ -1,0 +1,100 @@
+name: Scheduled Dependency Check
+
+on:
+  schedule:
+    # Run every Monday at 09:00 UTC
+    - cron: "0 9 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check-updates:
+    name: Check for Updates
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: "9"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check for outdated packages
+        id: outdated
+        run: |
+          pnpm outdated --format json > /tmp/outdated.json 2>/dev/null || true
+          if [ -s /tmp/outdated.json ]; then
+            echo "has_updates=true" >> $GITHUB_OUTPUT
+            cat /tmp/outdated.json
+          else
+            echo "has_updates=false" >> $GITHUB_OUTPUT
+            echo "All packages are up to date."
+          fi
+
+      - name: Run security audit
+        id: audit
+        run: |
+          pnpm audit --json > /tmp/audit.json 2>/dev/null || true
+          if grep -q '"severity"' /tmp/audit.json; then
+            echo "has_vulnerabilities=true" >> $GITHUB_OUTPUT
+            cat /tmp/audit.json
+          else
+            echo "has_vulnerabilities=false" >> $GITHUB_OUTPUT
+            echo "No vulnerabilities found."
+          fi
+
+      - name: Create issue if vulnerabilities found
+        if: steps.audit.outputs.has_vulnerabilities == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const audit = JSON.parse(fs.readFileSync('/tmp/audit.json', 'utf8'));
+            
+            const title = `Security: Vulnerabilities detected in dependencies`;
+            const body = `## Security Audit Results
+            
+            Vulnerabilities were detected during the scheduled dependency check.
+            
+            \`\`\`json
+            ${JSON.stringify(audit, null, 2).slice(0, 60000)}
+            \`\`\`
+            
+            Please review and update affected packages.
+            
+            ---
+            *This issue was automatically created by the scheduled dependency check workflow.*`;
+            
+            // Check if an open issue already exists
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'security,dependencies'
+            });
+            
+            const existingIssue = issues.data.find(i => i.title === title);
+            
+            if (!existingIssue) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+                labels: ['security', 'dependencies']
+              });
+            }

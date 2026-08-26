@@ -1,0 +1,270 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "22"
+  PNPM_VERSION: "9"
+
+jobs:
+  lint-format:
+    name: Lint & Format
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check formatting
+        run: pnpm exec prettier --check .
+
+      - name: Lint
+        run: pnpm exec eslint .
+
+  typecheck:
+    name: TypeScript
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck Worker
+        run: pnpm exec tsc -p tsconfig.worker.json --noEmit
+
+      - name: Typecheck App
+        run: pnpm exec tsc -p tsconfig.app.json --noEmit
+
+      - name: Typecheck Node scripts
+        run: pnpm exec tsc -p tsconfig.node.json --noEmit
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run unit tests
+        run: pnpm exec vitest run
+
+  pgtap-tests:
+    name: Database Tests (pgTAP)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: hqpixels
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pgTAP
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client libtap-parser-sourcehandler-pgtap-perl
+          # Install pgTAP extension
+          git clone --depth 1 https://github.com/theory/pgtap.git /tmp/pgtap
+          cd /tmp/pgtap
+          make
+          sudo make install
+
+      - name: Create pgTAP extension in database
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d hqpixels -c "CREATE EXTENSION IF NOT EXISTS pgtap;"
+
+      - name: Apply Supabase shim
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d hqpixels -f tests/db/supabase-shim.sql
+
+      - name: Apply migrations
+        env:
+          PGPASSWORD: postgres
+        run: |
+          for f in supabase/migrations/*.sql; do
+            echo "Applying $f..."
+            psql -h localhost -U postgres -d hqpixels -f "$f"
+          done
+
+      - name: Run behaviour checks
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d hqpixels -f tests/db/behaviour-checks.sql
+
+      - name: Run pgTAP tests
+        env:
+          PGPASSWORD: postgres
+        run: |
+          for f in supabase/tests/*.sql; do
+            echo "Running $f..."
+            psql -h localhost -U postgres -d hqpixels -f "$f"
+          done
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [lint-format, typecheck, unit-tests]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build client
+        run: pnpm exec vite build
+
+      - name: Wrangler dry-run
+        run: pnpm exec wrangler deploy --dry-run --outdir dist/worker
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 7
+
+  csp-assert:
+    name: CSP Assertion
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Assert no inline scripts
+        run: node scripts/assert-no-inline-scripts.mjs
+
+  headers-check:
+    name: Headers Drift Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Generate headers
+        run: node scripts/generate-headers.mjs > /tmp/_headers
+
+      - name: Check for drift
+        run: |
+          if ! diff -q public/_headers /tmp/_headers > /dev/null 2>&1; then
+            echo "::error::public/_headers differs from generated output. Run 'node scripts/generate-headers.mjs > public/_headers' and commit."
+            diff public/_headers /tmp/_headers || true
+            exit 1
+          fi
+          echo "Headers file is up to date."
+
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run npm audit
+        run: pnpm audit --audit-level=high
