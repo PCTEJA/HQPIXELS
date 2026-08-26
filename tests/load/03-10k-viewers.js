@@ -70,8 +70,8 @@ const BASE_URL = __ENV.BASE_URL || 'http://localhost:8787';
 // Request pool to vary the load
 const ENDPOINTS = {
   manifest: { path: '/api/wall/manifest', weight: 0.75 },
-  pricing: { path: '/api/public/pricing', weight: 0.10 },
-  stats: { path: '/api/public/stats', weight: 0.10 },
+  pricing: { path: '/api/public/pricing', weight: 0.1 },
+  stats: { path: '/api/public/stats', weight: 0.1 },
   redirect: { path: '/go/sample-placement', weight: 0.05 },
 };
 

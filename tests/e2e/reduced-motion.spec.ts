@@ -84,7 +84,7 @@ test.describe('Reduced Motion Preference @a11y', () => {
 
     // The wall canvas should not have animated transitions
     const canvas = page.locator('canvas');
-    if (await canvas.count() > 0) {
+    if ((await canvas.count()) > 0) {
       // Check that the canvas container doesn't have transition animations
       const canvasStyles = await canvas.evaluate((el) => {
         const computed = window.getComputedStyle(el);
@@ -129,7 +129,7 @@ test.describe('Reduced Motion Preference @a11y', () => {
 
     // Check that loading indicators have text alternatives
     const loadingIndicator = page.locator('[role="status"]');
-    if (await loadingIndicator.count() > 0) {
+    if ((await loadingIndicator.count()) > 0) {
       // Should have accessible text (aria-label, aria-describedby, or text content)
       const indicator = loadingIndicator.first();
       const ariaLabel = await indicator.getAttribute('aria-label');
@@ -166,8 +166,7 @@ test.describe('Reduced Motion Preference @a11y', () => {
     });
 
     // Should have visible focus indicator
-    const hasFocus =
-      focusStyles.outline !== 'none' || focusStyles.boxShadow !== 'none';
+    const hasFocus = focusStyles.outline !== 'none' || focusStyles.boxShadow !== 'none';
     expect(hasFocus).toBe(true);
 
     await context.close();
@@ -182,7 +181,7 @@ test.describe('Reduced Motion Preference @a11y', () => {
 
     // Find and click a FAQ item
     const faqItem = page.locator('details').first();
-    if (await faqItem.count() > 0) {
+    if ((await faqItem.count()) > 0) {
       const summary = faqItem.locator('summary');
       await summary.click();
 
@@ -195,9 +194,7 @@ test.describe('Reduced Motion Preference @a11y', () => {
 });
 
 test.describe('Motion vs No-Motion Parity @a11y', () => {
-  test('content is identical with and without reduced motion', async ({
-    browser,
-  }) => {
+  test('content is identical with and without reduced motion', async ({ browser }) => {
     // Create two contexts: one with reduced motion, one without
     const normalContext = await browser.newContext();
     const reducedContext = await browser.newContext({
@@ -216,10 +213,10 @@ test.describe('Motion vs No-Motion Parity @a11y', () => {
 
     // Compare text content (should be identical)
     const normalText = await normalPage.evaluate(() =>
-      document.body.innerText.replace(/\s+/g, ' ').trim()
+      document.body.innerText.replace(/\s+/g, ' ').trim(),
     );
     const reducedText = await reducedPage.evaluate(() =>
-      document.body.innerText.replace(/\s+/g, ' ').trim()
+      document.body.innerText.replace(/\s+/g, ' ').trim(),
     );
 
     expect(normalText).toBe(reducedText);

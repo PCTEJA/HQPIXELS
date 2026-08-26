@@ -335,7 +335,7 @@ publicRoutes.post('/view', async (c) => {
   const decision = await deps.rateLimiter.consume('clickRedirect', bucketKey);
 
   const automated = looksAutomated(c.req.raw);
-  const body = await c.req.json<{ path?: unknown }>().catch(() => ({}));
+  const body = await c.req.json<{ path?: string }>().catch(() => ({} as { path?: string }));
   const path = typeof body.path === 'string' && body.path.length < 200 ? body.path : '/';
 
   // Over-limit or automated traffic is recorded as `filtered`, so the excluded
@@ -366,7 +366,9 @@ publicRoutes.post('/impressions', async (c) => {
   const decision = await deps.rateLimiter.consume('clickRedirect', bucketKey);
   if (!decision.allowed || looksAutomated(c.req.raw)) return c.body(null, 204);
 
-  const body = await c.req.json<{ placementIds?: unknown }>().catch(() => ({}));
+  const body = await c.req
+    .json<{ placementIds?: string[] }>()
+    .catch(() => ({} as { placementIds?: string[] }));
 
   if (!Array.isArray(body.placementIds)) return c.body(null, 204);
 

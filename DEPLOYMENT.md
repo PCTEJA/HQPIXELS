@@ -36,18 +36,18 @@ This guide covers deploying HQPixels to production with Cloudflare Workers, Supa
 
 In Cloudflare DNS:
 
-| Type | Name | Content | Proxy |
-|------|------|---------|-------|
-| CNAME | `@` | `hqpixels.workers.dev` | Proxied |
-| CNAME | `www` | `hqpixels.com` | Proxied |
+| Type  | Name  | Content                | Proxy   |
+| ----- | ----- | ---------------------- | ------- |
+| CNAME | `@`   | `hqpixels.workers.dev` | Proxied |
+| CNAME | `www` | `hqpixels.com`         | Proxied |
 
 For email (Spacemail):
 
-| Type | Name | Content | Priority |
-|------|------|---------|----------|
-| MX | `@` | `mx1.spaceship.com` | 10 |
-| MX | `@` | `mx2.spaceship.com` | 20 |
-| TXT | `@` | `v=spf1 include:spf.spaceship.com ~all` | - |
+| Type | Name | Content                                 | Priority |
+| ---- | ---- | --------------------------------------- | -------- |
+| MX   | `@`  | `mx1.spaceship.com`                     | 10       |
+| MX   | `@`  | `mx2.spaceship.com`                     | 20       |
+| TXT  | `@`  | `v=spf1 include:spf.spaceship.com ~all` | -        |
 
 ### 1.5 Enable DNSSEC
 
@@ -166,6 +166,7 @@ wrangler secret put ADMIN_EMAIL_ALLOWLIST
 ```
 
 Generate secure secrets:
+
 ```bash
 # Generate 32-byte random secret
 node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
@@ -195,6 +196,7 @@ pnpm deploy:production
 See [STRIPE_SETUP.md](STRIPE_SETUP.md) for detailed Stripe configuration.
 
 Quick steps:
+
 1. Create Stripe account and activate for live payments
 2. Create webhook endpoint: `https://hqpixels.com/api/stripe/webhook`
 3. Subscribe to events: `checkout.session.completed`, `checkout.session.expired`, etc.
@@ -216,18 +218,19 @@ Quick steps:
 
 In Supabase → Project Settings → Auth → SMTP:
 
-| Setting | Value |
-|---------|-------|
-| Host | `smtp.spaceship.com` |
-| Port | 587 |
-| User | `noreply@hqpixels.com` |
-| Password | (mailbox password) |
+| Setting      | Value                  |
+| ------------ | ---------------------- |
+| Host         | `smtp.spaceship.com`   |
+| Port         | 587                    |
+| User         | `noreply@hqpixels.com` |
+| Password     | (mailbox password)     |
 | Sender email | `noreply@hqpixels.com` |
-| Sender name | `HQPixels` |
+| Sender name  | `HQPixels`             |
 
 ### 5.3 Email Templates
 
 Customize templates in Authentication → Email Templates:
+
 - Confirm signup
 - Magic link
 - Change email
@@ -245,6 +248,7 @@ Customize templates in Authentication → Email Templates:
 ### 6.2 Configure API Token
 
 Create token with Images permissions:
+
 1. Profile → API Tokens → Create Token
 2. Permissions: `Cloudflare Images: Edit`
 
@@ -256,6 +260,7 @@ wrangler secret put CLOUDFLARE_IMAGES_ACCOUNT_ID
 ### 6.3 Update Config
 
 Set in wrangler.jsonc vars:
+
 ```jsonc
 "vars": {
   "CLOUDFLARE_IMAGES_DELIVERY_BASE": "https://imagedelivery.net/<account-hash>"
@@ -277,11 +282,13 @@ Set in wrangler.jsonc vars:
 ### 7.2 Configure
 
 Client (`.env`):
+
 ```
 VITE_TURNSTILE_SITE_KEY=0x4AAA...
 ```
 
 Server:
+
 ```bash
 wrangler secret put TURNSTILE_SECRET_KEY
 ```
@@ -294,13 +301,13 @@ wrangler secret put TURNSTILE_SECRET_KEY
 
 In Cloudflare → SSL/TLS:
 
-| Setting | Value |
-|---------|-------|
-| SSL/TLS encryption mode | Full (strict) |
-| Always Use HTTPS | On |
-| Automatic HTTPS Rewrites | On |
-| TLS 1.3 | On |
-| Minimum TLS Version | 1.2 |
+| Setting                  | Value         |
+| ------------------------ | ------------- |
+| SSL/TLS encryption mode  | Full (strict) |
+| Always Use HTTPS         | On            |
+| Automatic HTTPS Rewrites | On            |
+| TLS 1.3                  | On            |
+| Minimum TLS Version      | 1.2           |
 
 ### 8.2 Enable HSTS
 
@@ -316,11 +323,11 @@ After confirming HTTPS works:
 
 Add CAA records to restrict certificate issuance:
 
-| Type | Name | Content |
-|------|------|---------|
-| CAA | `@` | `0 issue "digicert.com"` |
-| CAA | `@` | `0 issue "letsencrypt.org"` |
-| CAA | `@` | `0 issuewild ";"` |
+| Type | Name | Content                     |
+| ---- | ---- | --------------------------- |
+| CAA  | `@`  | `0 issue "digicert.com"`    |
+| CAA  | `@`  | `0 issue "letsencrypt.org"` |
+| CAA  | `@`  | `0 issuewild ";"`           |
 
 ---
 
@@ -340,6 +347,7 @@ curl -I https://hqpixels.com | grep -E "(Content-Security|X-Frame|Strict-Transpo
 ```
 
 Expected:
+
 ```
 Content-Security-Policy: default-src 'none'; ...
 X-Frame-Options: DENY
@@ -367,29 +375,29 @@ dig +dnssec hqpixels.com
 
 ### Worker Secrets (wrangler secret)
 
-| Variable | Description |
-|----------|-------------|
-| `SUPABASE_URL` | Supabase project URL |
-| `SUPABASE_ANON_KEY` | Supabase anonymous key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key |
-| `STRIPE_SECRET_KEY` | Stripe secret key |
-| `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret |
-| `STRIPE_PRICE_ID` | Stripe price ID (if using fixed pricing) |
-| `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile secret |
-| `CSRF_SECRET` | CSRF token signing secret |
-| `COOKIE_SECRET` | Cookie signing secret |
-| `ADMIN_EMAIL_ALLOWLIST` | Comma-separated admin emails |
-| `CLOUDFLARE_IMAGES_TOKEN` | Cloudflare Images API token |
-| `CLOUDFLARE_IMAGES_ACCOUNT_ID` | Cloudflare account ID |
+| Variable                       | Description                              |
+| ------------------------------ | ---------------------------------------- |
+| `SUPABASE_URL`                 | Supabase project URL                     |
+| `SUPABASE_ANON_KEY`            | Supabase anonymous key                   |
+| `SUPABASE_SERVICE_ROLE_KEY`    | Supabase service role key                |
+| `STRIPE_SECRET_KEY`            | Stripe secret key                        |
+| `STRIPE_WEBHOOK_SECRET`        | Stripe webhook signing secret            |
+| `STRIPE_PRICE_ID`              | Stripe price ID (if using fixed pricing) |
+| `TURNSTILE_SECRET_KEY`         | Cloudflare Turnstile secret              |
+| `CSRF_SECRET`                  | CSRF token signing secret                |
+| `COOKIE_SECRET`                | Cookie signing secret                    |
+| `ADMIN_EMAIL_ALLOWLIST`        | Comma-separated admin emails             |
+| `CLOUDFLARE_IMAGES_TOKEN`      | Cloudflare Images API token              |
+| `CLOUDFLARE_IMAGES_ACCOUNT_ID` | Cloudflare account ID                    |
 
 ### Client Environment (.env)
 
-| Variable | Description |
-|----------|-------------|
-| `VITE_SUPABASE_URL` | Supabase project URL |
-| `VITE_SUPABASE_ANON_KEY` | Supabase anonymous key |
-| `VITE_TURNSTILE_SITE_KEY` | Cloudflare Turnstile site key |
-| `VITE_STRIPE_PUBLISHABLE_KEY` | Stripe publishable key |
+| Variable                      | Description                   |
+| ----------------------------- | ----------------------------- |
+| `VITE_SUPABASE_URL`           | Supabase project URL          |
+| `VITE_SUPABASE_ANON_KEY`      | Supabase anonymous key        |
+| `VITE_TURNSTILE_SITE_KEY`     | Cloudflare Turnstile site key |
+| `VITE_STRIPE_PUBLISHABLE_KEY` | Stripe publishable key        |
 
 ---
 

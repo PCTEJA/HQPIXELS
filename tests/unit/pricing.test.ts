@@ -33,9 +33,7 @@ describe('assertValidRect', () => {
   });
 
   it('accepts a selection at the far corner', () => {
-    expect(() =>
-      assertValidRect({ x: GRID_SIZE - 1, y: GRID_SIZE - 1, w: 1, h: 1 }),
-    ).not.toThrow();
+    expect(() => assertValidRect({ x: GRID_SIZE - 1, y: GRID_SIZE - 1, w: 1, h: 1 })).not.toThrow();
   });
 
   it('accepts the maximum selection size', () => {

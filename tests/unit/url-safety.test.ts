@@ -217,18 +217,24 @@ describe('normalizeDestinationUrl', () => {
 
     it('rejects URLs with zero-width characters', () => {
       // Using codepoint description since we can't write the literal
-      expectFailure('https://example' + String.fromCharCode(0x200b) + '.com/', 'control_characters');
+      expectFailure(
+        'https://example' + String.fromCharCode(0x200b) + '.com/',
+        'control_characters',
+      );
     });
 
     it('rejects URLs with bidi override characters', () => {
-      expectFailure('https://example' + String.fromCharCode(0x202e) + '.com/', 'control_characters');
+      expectFailure(
+        'https://example' + String.fromCharCode(0x202e) + '.com/',
+        'control_characters',
+      );
     });
   });
 
   describe('IDN and punycode', () => {
     it('accepts legitimate international domains', () => {
       // Pure non-Latin script is allowed
-      const result = normalizeDestinationUrl('https://xn--n3h.com/');
+      const _result = normalizeDestinationUrl('https://xn--n3h.com/');
       // May or may not succeed depending on the specific punycode
       // The important thing is mixed-script rejection
     });

@@ -87,7 +87,7 @@ export async function sha256Hex(input: string | ArrayBuffer | Uint8Array): Promi
       : input instanceof Uint8Array
         ? input
         : new Uint8Array(input);
-  const digest = await crypto.subtle.digest('SHA-256', data);
+  const digest = await crypto.subtle.digest('SHA-256', data as BufferSource);
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 

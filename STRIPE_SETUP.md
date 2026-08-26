@@ -4,10 +4,10 @@ This guide covers configuring Stripe for HQPixels payment processing.
 
 ## Test Mode vs Live Mode
 
-| Mode | API Keys | Webhooks | Real Money |
-|------|----------|----------|------------|
-| Test | `sk_test_*`, `pk_test_*` | Test endpoint | No |
-| Live | `sk_live_*`, `pk_live_*` | Production endpoint | Yes |
+| Mode | API Keys                 | Webhooks            | Real Money |
+| ---- | ------------------------ | ------------------- | ---------- |
+| Test | `sk_test_*`, `pk_test_*` | Test endpoint       | No         |
+| Live | `sk_live_*`, `pk_live_*` | Production endpoint | Yes        |
 
 **Always complete testing in test mode before going live.**
 
@@ -35,11 +35,13 @@ This guide covers configuring Stripe for HQPixels payment processing.
 ### Configure Keys
 
 Client (`.env`):
+
 ```env
 VITE_STRIPE_PUBLISHABLE_KEY=pk_test_...
 ```
 
 Server:
+
 ```bash
 wrangler secret put STRIPE_SECRET_KEY
 # Enter: sk_test_...
@@ -58,19 +60,20 @@ wrangler secret put STRIPE_SECRET_KEY
 
 Subscribe to these events:
 
-| Event | Purpose |
-|-------|---------|
-| `checkout.session.completed` | Payment successful |
-| `checkout.session.expired` | Checkout abandoned |
+| Event                                      | Purpose                   |
+| ------------------------------------------ | ------------------------- |
+| `checkout.session.completed`               | Payment successful        |
+| `checkout.session.expired`                 | Checkout abandoned        |
 | `checkout.session.async_payment_succeeded` | Delayed payment confirmed |
-| `checkout.session.async_payment_failed` | Delayed payment failed |
-| `charge.refunded` | Refund processed |
-| `charge.dispute.created` | Chargeback initiated |
-| `charge.dispute.closed` | Chargeback resolved |
+| `checkout.session.async_payment_failed`    | Delayed payment failed    |
+| `charge.refunded`                          | Refund processed          |
+| `charge.dispute.created`                   | Chargeback initiated      |
+| `charge.dispute.closed`                    | Chargeback resolved       |
 
 ### 3.3 Get Webhook Secret
 
 After creating the endpoint:
+
 1. Click on the endpoint
 2. Click "Reveal" under Signing secret
 3. Copy `whsec_...`
@@ -133,17 +136,19 @@ HQPixels creates Checkout Sessions dynamically. Key parameters:
 const session = await stripe.checkout.sessions.create({
   mode: 'payment',
   payment_method_types: ['card'],
-  line_items: [{
-    price_data: {
-      currency: 'usd',
-      unit_amount: totalCents, // Computed from database
-      product_data: {
-        name: `HQPixels: ${widthCells}x${heightCells} cells`,
-        description: `${cellCount} cells at position (${cellX}, ${cellY})`,
+  line_items: [
+    {
+      price_data: {
+        currency: 'usd',
+        unit_amount: totalCents, // Computed from database
+        product_data: {
+          name: `HQPixels: ${widthCells}x${heightCells} cells`,
+          description: `${cellCount} cells at position (${cellX}, ${cellY})`,
+        },
       },
+      quantity: 1,
     },
-    quantity: 1,
-  }],
+  ],
   success_url: `${baseUrl}/claim/success?session_id={CHECKOUT_SESSION_ID}`,
   cancel_url: `${baseUrl}/claim/cancelled?reservation_id=${reservationId}`,
   client_reference_id: reservationId,
@@ -177,11 +182,7 @@ const signature = c.req.header('stripe-signature');
 // CRITICAL: Verify on raw body before parsing
 let event: Stripe.Event;
 try {
-  event = stripe.webhooks.constructEvent(
-    rawBody,
-    signature!,
-    webhookSecret
-  );
+  event = stripe.webhooks.constructEvent(rawBody, signature!, webhookSecret);
 } catch (err) {
   logger.warn('Webhook signature verification failed');
   return c.json({ error: 'Invalid signature' }, 400);
@@ -225,13 +226,13 @@ switch (event.type) {
 
 ## 7. Test Card Numbers
 
-| Card Number | Scenario |
-|-------------|----------|
+| Card Number           | Scenario           |
+| --------------------- | ------------------ |
 | `4242 4242 4242 4242` | Successful payment |
-| `4000 0000 0000 0002` | Card declined |
+| `4000 0000 0000 0002` | Card declined      |
 | `4000 0000 0000 9995` | Insufficient funds |
 | `4000 0000 0000 3220` | 3D Secure required |
-| `4000 0000 0000 0341` | Attaching fails |
+| `4000 0000 0000 0341` | Attaching fails    |
 
 Use any future expiration date and any 3-digit CVC.
 
@@ -278,7 +279,7 @@ Use any future expiration date and any 3-digit CVC.
    ```bash
    wrangler secret put STRIPE_SECRET_KEY --env production
    # Enter live sk_live_... key
-   
+
    wrangler secret put STRIPE_WEBHOOK_SECRET --env production
    # Enter live whsec_... secret
    ```

@@ -27,21 +27,21 @@ main
 
 Add these checks (they come from the `ci.yml` workflow):
 
-| Check Name          | Description                              |
-| ------------------- | ---------------------------------------- |
-| `Lint & Format`     | Prettier + ESLint                        |
-| `TypeScript`        | All 3 tsconfig files                     |
-| `Unit Tests`        | Vitest test suite                        |
-| `Build`             | Vite build + Wrangler dry-run            |
-| `Security Audit`    | npm audit at high level                  |
+| Check Name       | Description                   |
+| ---------------- | ----------------------------- |
+| `Lint & Format`  | Prettier + ESLint             |
+| `TypeScript`     | All 3 tsconfig files          |
+| `Unit Tests`     | Vitest test suite             |
+| `Build`          | Vite build + Wrangler dry-run |
+| `Security Audit` | npm audit at high level       |
 
 Optional but recommended:
 
-| Check Name                | Description                    |
-| ------------------------- | ------------------------------ |
-| `Database Tests (pgTAP)`  | PostgreSQL schema/behavior     |
-| `CSP Assertion`           | No inline scripts in build     |
-| `Headers Drift Check`     | _headers file matches gen      |
+| Check Name               | Description                |
+| ------------------------ | -------------------------- |
+| `Database Tests (pgTAP)` | PostgreSQL schema/behavior |
+| `CSP Assertion`          | No inline scripts in build |
+| `Headers Drift Check`    | _headers file matches gen  |
 
 ### Require conversation resolution before merging
 
@@ -49,11 +49,11 @@ Optional but recommended:
 
 ### Require signed commits
 
-- [ ] Require signed commits *(optional, enable if team uses GPG)*
+- [ ] Require signed commits _(optional, enable if team uses GPG)_
 
 ### Require linear history
 
-- [ ] Require linear history *(optional, prevents merge commits)*
+- [ ] Require linear history _(optional, prevents merge commits)_
 
 ### Do not allow bypassing the above settings
 
@@ -61,7 +61,7 @@ Optional but recommended:
 
 ### Restrict who can push to matching branches
 
-- [ ] Restrict who can push *(optional, for admin-only deploys)*
+- [ ] Restrict who can push _(optional, for admin-only deploys)_
 
 ### Rules applied to everyone including administrators
 

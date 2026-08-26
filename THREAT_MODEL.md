@@ -37,27 +37,27 @@ graph TB
 
 **Threat: Session Hijacking**
 
-| Vector | Control | Status |
-|--------|---------|--------|
+| Vector                       | Control                                     | Status    |
+| ---------------------------- | ------------------------------------------- | --------- |
 | Steal session cookie via XSS | CSP blocks inline scripts; HttpOnly cookies | Mitigated |
-| Session fixation | Cookies regenerated on login | Mitigated |
-| Token theft via MITM | HTTPS only; HSTS preload | Mitigated |
-| Replay stolen token | Short token TTL (1 hour); refresh rotation | Mitigated |
+| Session fixation             | Cookies regenerated on login                | Mitigated |
+| Token theft via MITM         | HTTPS only; HSTS preload                    | Mitigated |
+| Replay stolen token          | Short token TTL (1 hour); refresh rotation  | Mitigated |
 
 **Threat: CSRF (Cross-Site Request Forgery)**
 
-| Vector | Control | Status |
-|--------|---------|--------|
-| Forged form submission | CSRF token required for mutations | Mitigated |
-| Forged XHR from malicious site | Origin header validation | Mitigated |
-| CSRF via GET | Mutations only via POST/PUT/DELETE | Mitigated |
+| Vector                         | Control                            | Status    |
+| ------------------------------ | ---------------------------------- | --------- |
+| Forged form submission         | CSRF token required for mutations  | Mitigated |
+| Forged XHR from malicious site | Origin header validation           | Mitigated |
+| CSRF via GET                   | Mutations only via POST/PUT/DELETE | Mitigated |
 
 ```typescript
 // CSRF validation flow
 if (requiresCsrf(method)) {
   const headerToken = readCsrfHeader(request);
   const cookieToken = readCookie(request, 'csrf-token');
-  
+
   if (!verifyCsrf(headerToken, cookieToken, secret)) {
     throw new ApiError('csrf_invalid');
   }
@@ -66,11 +66,11 @@ if (requiresCsrf(method)) {
 
 **Threat: Bot Abuse**
 
-| Vector | Control | Status |
-|--------|---------|--------|
-| Automated reservation spam | Turnstile CAPTCHA on create | Mitigated |
-| Credential stuffing | Rate limit (5/min/IP) on login | Mitigated |
-| Scraping | Rate limit on public endpoints | Mitigated |
+| Vector                     | Control                        | Status    |
+| -------------------------- | ------------------------------ | --------- |
+| Automated reservation spam | Turnstile CAPTCHA on create    | Mitigated |
+| Credential stuffing        | Rate limit (5/min/IP) on login | Mitigated |
+| Scraping                   | Rate limit on public endpoints | Mitigated |
 
 ---
 
@@ -78,10 +78,10 @@ if (requiresCsrf(method)) {
 
 **Threat: Price Manipulation**
 
-| Vector | Control | Status |
-|--------|---------|--------|
-| Client sends fake price | No price field in request schema | Mitigated |
-| Modify price in transit | Server computes from DB only | Mitigated |
+| Vector                       | Control                               | Status    |
+| ---------------------------- | ------------------------------------- | --------- |
+| Client sends fake price      | No price field in request schema      | Mitigated |
+| Modify price in transit      | Server computes from DB only          | Mitigated |
 | SQL injection in price query | Parameterized queries; Zod validation | Mitigated |
 
 ```sql
@@ -95,27 +95,27 @@ $$ LANGUAGE sql STABLE;
 
 **Threat: Reservation Data Tampering**
 
-| Vector | Control | Status |
-|--------|---------|--------|
+| Vector                            | Control                                        | Status    |
+| --------------------------------- | ---------------------------------------------- | --------- |
 | Modify reservation after creation | `tg_enforce_reservation_update` blocks changes | Mitigated |
-| Double-book same cells | `pixel_cells` PK on (cell_x, cell_y) | Mitigated |
-| Skip payment state | State machine trigger validates transitions | Mitigated |
+| Double-book same cells            | `pixel_cells` PK on (cell_x, cell_y)           | Mitigated |
+| Skip payment state                | State machine trigger validates transitions    | Mitigated |
 
 **Threat: Webhook Payload Tampering**
 
-| Vector | Control | Status |
-|--------|---------|--------|
+| Vector               | Control                                 | Status    |
+| -------------------- | --------------------------------------- | --------- |
 | Forge Stripe webhook | HMAC signature verification on raw body | Mitigated |
-| Replay valid webhook | `stripe_events.id` PK prevents replay | Mitigated |
-| Out-of-order events | Idempotent handlers check current state | Mitigated |
+| Replay valid webhook | `stripe_events.id` PK prevents replay   | Mitigated |
+| Out-of-order events  | Idempotent handlers check current state | Mitigated |
 
 **Threat: Audit Log Tampering**
 
-| Vector | Control | Status |
-|--------|---------|--------|
-| Delete audit entries | Trigger blocks DELETE even for service_role | Mitigated |
-| Modify audit entries | Trigger blocks UPDATE | Mitigated |
-| Forge audit entries | Only server can INSERT; actor_id from session | Mitigated |
+| Vector               | Control                                       | Status    |
+| -------------------- | --------------------------------------------- | --------- |
+| Delete audit entries | Trigger blocks DELETE even for service_role   | Mitigated |
+| Modify audit entries | Trigger blocks UPDATE                         | Mitigated |
+| Forge audit entries  | Only server can INSERT; actor_id from session | Mitigated |
 
 ---
 
@@ -123,20 +123,21 @@ $$ LANGUAGE sql STABLE;
 
 **Threat: User Denies Purchase**
 
-| Vector | Control | Status |
-|--------|---------|--------|
-| "I didn't make that purchase" | Stripe receipt + audit log with IP | Mitigated |
-| "I didn't upload that image" | Audit log records upload actor + timestamp | Mitigated |
-| "My account was hacked" | Login audit with IP/UA; email verification | Partial |
+| Vector                        | Control                                    | Status    |
+| ----------------------------- | ------------------------------------------ | --------- |
+| "I didn't make that purchase" | Stripe receipt + audit log with IP         | Mitigated |
+| "I didn't upload that image"  | Audit log records upload actor + timestamp | Mitigated |
+| "My account was hacked"       | Login audit with IP/UA; email verification | Partial   |
 
 **Threat: Admin Denies Action**
 
-| Vector | Control | Status |
-|--------|---------|--------|
+| Vector                           | Control                                  | Status    |
+| -------------------------------- | ---------------------------------------- | --------- |
 | "I didn't reject that placement" | `moderation_actions` table with actor_id | Mitigated |
-| "I didn't grant admin access" | Admin grant blocked; only DB owner can | Mitigated |
+| "I didn't grant admin access"    | Admin grant blocked; only DB owner can   | Mitigated |
 
 **Recorded audit events:**
+
 - Session creation (IP, user agent, timestamp)
 - Reservation creation (cells, amount, user)
 - Payment settlement (Stripe session, amount)
@@ -149,35 +150,35 @@ $$ LANGUAGE sql STABLE;
 
 **Threat: Sensitive Data in Client Bundle**
 
-| Vector | Control | Status |
-|--------|---------|--------|
-| Secrets in `VITE_*` env vars | Lint rule prevents; only public keys in VITE_* | Mitigated |
-| API keys in source | `.env` in .gitignore; secrets in Wrangler | Mitigated |
-| User data in error messages | Errors return generic messages; details in logs | Mitigated |
+| Vector                       | Control                                         | Status    |
+| ---------------------------- | ----------------------------------------------- | --------- |
+| Secrets in `VITE_*` env vars | Lint rule prevents; only public keys in VITE_*  | Mitigated |
+| API keys in source           | `.env` in .gitignore; secrets in Wrangler       | Mitigated |
+| User data in error messages  | Errors return generic messages; details in logs | Mitigated |
 
 **Threat: Cross-User Data Access**
 
-| Vector | Control | Status |
-|--------|---------|--------|
-| View other user's reservations | RLS policy: `owner_id = auth.uid()` | Mitigated |
-| View other user's payments | RLS policy: owner-only access | Mitigated |
-| Enumerate user emails | No user search endpoint; profiles not public | Mitigated |
+| Vector                         | Control                                      | Status    |
+| ------------------------------ | -------------------------------------------- | --------- |
+| View other user's reservations | RLS policy: `owner_id = auth.uid()`          | Mitigated |
+| View other user's payments     | RLS policy: owner-only access                | Mitigated |
+| Enumerate user emails          | No user search endpoint; profiles not public | Mitigated |
 
 **Threat: Database Enumeration**
 
-| Vector | Control | Status |
-|--------|---------|--------|
-| IDOR on reservation IDs | UUID v4 (122 bits entropy); RLS enforced | Mitigated |
-| Sequential ID guessing | No sequential IDs; all UUIDs | Mitigated |
-| Timing-based enumeration | Constant-time comparisons for auth | Mitigated |
+| Vector                   | Control                                  | Status    |
+| ------------------------ | ---------------------------------------- | --------- |
+| IDOR on reservation IDs  | UUID v4 (122 bits entropy); RLS enforced | Mitigated |
+| Sequential ID guessing   | No sequential IDs; all UUIDs             | Mitigated |
+| Timing-based enumeration | Constant-time comparisons for auth       | Mitigated |
 
 **Threat: Log Data Exposure**
 
-| Vector | Control | Status |
-|--------|---------|--------|
+| Vector          | Control                                   | Status    |
+| --------------- | ----------------------------------------- | --------- |
 | Secrets in logs | Redacting logger filters sensitive fields | Mitigated |
-| PII in logs | Only IP prefix logged (not full IP) | Mitigated |
-| Log injection | Input sanitized before logging | Mitigated |
+| PII in logs     | Only IP prefix logged (not full IP)       | Mitigated |
+| Log injection   | Input sanitized before logging            | Mitigated |
 
 ---
 
@@ -185,27 +186,27 @@ $$ LANGUAGE sql STABLE;
 
 **Threat: Application-Layer DOS**
 
-| Vector | Control | Status |
-|--------|---------|--------|
-| Request flooding | Rate limiting (60-120/min per IP) | Mitigated |
-| Expensive query abuse | Query complexity limits in RPC | Mitigated |
+| Vector                | Control                                    | Status    |
+| --------------------- | ------------------------------------------ | --------- |
+| Request flooding      | Rate limiting (60-120/min per IP)          | Mitigated |
+| Expensive query abuse | Query complexity limits in RPC             | Mitigated |
 | Large payload attacks | Body size limit (64KB JSON, 512KB webhook) | Mitigated |
 
 **Threat: Resource Exhaustion**
 
-| Vector | Control | Status |
-|--------|---------|--------|
-| Reserve all cells | MAX_SELECTION_CELLS = 2500 (25% max) | Mitigated |
-| Reservation spam | Turnstile + rate limit | Mitigated |
-| Unpaid reservation blocking | Auto-expire after 45 minutes | Mitigated |
+| Vector                      | Control                              | Status    |
+| --------------------------- | ------------------------------------ | --------- |
+| Reserve all cells           | MAX_SELECTION_CELLS = 2500 (25% max) | Mitigated |
+| Reservation spam            | Turnstile + rate limit               | Mitigated |
+| Unpaid reservation blocking | Auto-expire after 45 minutes         | Mitigated |
 
 **Threat: Distributed Attacks**
 
-| Vector | Control | Status |
-|--------|---------|--------|
-| Botnet traffic | Cloudflare DDoS protection | Mitigated |
-| L7 attacks | Rate limiting + circuit breaker | Partial |
-| Slow loris | Cloudflare handles connection limits | Mitigated |
+| Vector         | Control                              | Status    |
+| -------------- | ------------------------------------ | --------- |
+| Botnet traffic | Cloudflare DDoS protection           | Mitigated |
+| L7 attacks     | Rate limiting + circuit breaker      | Partial   |
+| Slow loris     | Cloudflare handles connection limits | Mitigated |
 
 ```typescript
 // Circuit breaker prevents cascade failures
@@ -221,11 +222,11 @@ if (errorRate > ERROR_THRESHOLD) {
 
 **Threat: Unauthorized Admin Access**
 
-| Vector | Control | Status |
-|--------|---------|--------|
-| Self-grant admin flag | `tg_protect_profile_privileges` blocks | Mitigated |
-| Modify profile via API | RLS: only name/bio fields writable | Mitigated |
-| SQL injection for admin | Parameterized queries; no raw SQL | Mitigated |
+| Vector                  | Control                                | Status    |
+| ----------------------- | -------------------------------------- | --------- |
+| Self-grant admin flag   | `tg_protect_profile_privileges` blocks | Mitigated |
+| Modify profile via API  | RLS: only name/bio fields writable     | Mitigated |
+| SQL injection for admin | Parameterized queries; no raw SQL      | Mitigated |
 
 ```sql
 -- Triple-layer admin protection
@@ -242,11 +243,11 @@ $$ LANGUAGE plpgsql;
 
 **Threat: State Machine Bypass**
 
-| Vector | Control | Status |
-|--------|---------|--------|
-| Skip `reserved` → `paid` | `reservation_transitions` trigger | Mitigated |
-| Direct `expired` → `paid` | Invalid transition blocked | Mitigated |
-| Replay old state | Current state checked before transition | Mitigated |
+| Vector                    | Control                                 | Status    |
+| ------------------------- | --------------------------------------- | --------- |
+| Skip `reserved` → `paid`  | `reservation_transitions` trigger       | Mitigated |
+| Direct `expired` → `paid` | Invalid transition blocked              | Mitigated |
+| Replay old state          | Current state checked before transition | Mitigated |
 
 ```sql
 -- Valid state transitions enforced at database level
@@ -268,11 +269,11 @@ INSERT INTO reservation_transitions VALUES
 
 **Threat: RLS Bypass**
 
-| Vector | Control | Status |
-|--------|---------|--------|
-| Direct table access | RLS enabled on all tables | Mitigated |
-| Bypass via SECURITY DEFINER | Explicit grant checks in functions | Mitigated |
-| Service role abuse | service_role blocked from `grant_admin()` | Mitigated |
+| Vector                      | Control                                   | Status    |
+| --------------------------- | ----------------------------------------- | --------- |
+| Direct table access         | RLS enabled on all tables                 | Mitigated |
+| Bypass via SECURITY DEFINER | Explicit grant checks in functions        | Mitigated |
+| Service role abuse          | service_role blocked from `grant_admin()` | Mitigated |
 
 ---
 
@@ -312,17 +313,17 @@ graph TB
 
 ## Threat Priority Matrix
 
-| Threat | Likelihood | Impact | Priority | Status |
-|--------|------------|--------|----------|--------|
-| Price tampering | High | Critical | P0 | Mitigated |
-| Session hijacking | Medium | High | P1 | Mitigated |
-| Admin privilege escalation | Low | Critical | P1 | Mitigated |
-| Webhook replay | Medium | High | P1 | Mitigated |
-| CSRF | Medium | Medium | P2 | Mitigated |
-| DOS via flooding | High | Medium | P2 | Mitigated |
-| Cell double-booking | Medium | High | P1 | Mitigated |
-| Audit log tampering | Low | High | P2 | Mitigated |
-| User enumeration | Low | Low | P3 | Mitigated |
+| Threat                     | Likelihood | Impact   | Priority | Status    |
+| -------------------------- | ---------- | -------- | -------- | --------- |
+| Price tampering            | High       | Critical | P0       | Mitigated |
+| Session hijacking          | Medium     | High     | P1       | Mitigated |
+| Admin privilege escalation | Low        | Critical | P1       | Mitigated |
+| Webhook replay             | Medium     | High     | P1       | Mitigated |
+| CSRF                       | Medium     | Medium   | P2       | Mitigated |
+| DOS via flooding           | High       | Medium   | P2       | Mitigated |
+| Cell double-booking        | Medium     | High     | P1       | Mitigated |
+| Audit log tampering        | Low        | High     | P2       | Mitigated |
+| User enumeration           | Low        | Low      | P3       | Mitigated |
 
 ## Assumptions
 

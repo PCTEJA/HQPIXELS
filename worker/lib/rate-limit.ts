@@ -78,7 +78,11 @@ export class DurableObjectRateLimiter implements RateLimiter {
 
       if (!response.ok) throw new Error(`rate limiter returned ${response.status}`);
 
-      const body = await response.json();
+      const body = (await response.json()) as {
+        allowed?: boolean;
+        remaining?: number;
+        retryAfter?: number;
+      };
 
       return {
         allowed: body.allowed !== false,

@@ -157,7 +157,11 @@ export class DurableObjectAnalytics implements AnalyticsClient {
         try {
           const response = await this.stub(shard).fetch('https://analytics.internal/stats');
           if (!response.ok) return;
-          const body = await response.json();
+          const body = (await response.json()) as {
+            pendingViewKeys?: number;
+            pendingClickKeys?: number;
+            pendingImpressionKeys?: number;
+          };
           total +=
             (body.pendingViewKeys ?? 0) +
             (body.pendingClickKeys ?? 0) +

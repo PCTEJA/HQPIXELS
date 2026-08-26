@@ -19,12 +19,12 @@ This document contains operational procedures for running HQPixels in production
 
 ### Severity Levels
 
-| Level | Description | Response Time | Example |
-|-------|-------------|---------------|---------|
-| P0 | Service down, data breach | 15 min | Workers returning 500, DB unreachable |
-| P1 | Major feature broken | 1 hour | Payments failing, auth broken |
-| P2 | Minor feature degraded | 4 hours | Slow queries, rate limit issues |
-| P3 | Cosmetic/low impact | 24 hours | UI glitch, missing analytics |
+| Level | Description               | Response Time | Example                               |
+| ----- | ------------------------- | ------------- | ------------------------------------- |
+| P0    | Service down, data breach | 15 min        | Workers returning 500, DB unreachable |
+| P1    | Major feature broken      | 1 hour        | Payments failing, auth broken         |
+| P2    | Minor feature degraded    | 4 hours       | Slow queries, rate limit issues       |
+| P3    | Cosmetic/low impact       | 24 hours      | UI glitch, missing analytics          |
 
 ### Incident Response Steps
 
@@ -52,12 +52,14 @@ wrangler tail --env production
 #### 3. Mitigate
 
 For Worker issues:
+
 ```bash
 # Rollback to previous deployment
 wrangler rollback --env production
 ```
 
 For database issues:
+
 ```bash
 # Contact Supabase support for Pro plans
 # Or restore from point-in-time backup
@@ -76,14 +78,17 @@ For database issues:
 
 ```markdown
 ## Incident: [Title]
+
 **Date:** YYYY-MM-DD
 **Duration:** X hours
 **Severity:** P0/P1/P2/P3
 
 ### Summary
+
 Brief description of what happened.
 
 ### Timeline
+
 - HH:MM - Issue detected
 - HH:MM - Investigation started
 - HH:MM - Root cause identified
@@ -91,14 +96,17 @@ Brief description of what happened.
 - HH:MM - Resolved
 
 ### Root Cause
+
 What caused the incident.
 
 ### Impact
+
 - Users affected: X
 - Revenue impact: $X
 - Data loss: Yes/No
 
 ### Action Items
+
 - [ ] Task 1
 - [ ] Task 2
 ```
@@ -314,10 +322,12 @@ When `charge.dispute.closed` received:
 ### Identifying Abuse
 
 **Automatic detection:**
+
 - Link health checks (daily)
 - Content review queue
 
 **Manual reports:**
+
 - Contact form submissions
 - Email to abuse@hqpixels.com
 
@@ -361,6 +371,7 @@ Action: Disabled on [date] by [admin]
 #### 5. Notify User (optional, depends on violation type)
 
 Email template:
+
 ```
 Your placement on HQPixels has been disabled for violating our Terms of Service.
 
@@ -386,6 +397,7 @@ For copyright claims:
 ### Supabase Automatic Backups
 
 Supabase Pro includes:
+
 - Daily backups (retained 7 days)
 - Point-in-time recovery (up to 7 days)
 
@@ -439,6 +451,7 @@ head -50 backup_*.sql
 **Dashboard:** Workers → Analytics
 
 Key metrics:
+
 - Request count
 - Error rate (should be <1%)
 - P99 latency (should be <200ms for cached endpoints)
@@ -448,6 +461,7 @@ Key metrics:
 **Dashboard:** Project → Database → Reports
 
 Key metrics:
+
 - Query execution time
 - Connection pool usage
 - Storage usage
@@ -457,6 +471,7 @@ Key metrics:
 **Dashboard:** Home → Overview
 
 Key metrics:
+
 - Payment success rate (should be >95%)
 - Webhook delivery success
 - Dispute rate (should be <0.5%)
@@ -481,27 +496,30 @@ openssl s_client -connect hqpixels.com:443 -servername hqpixels.com 2>/dev/null 
 
 Recommended alerts (via Stripe/Cloudflare dashboards or external monitoring):
 
-| Alert | Threshold | Priority |
-|-------|-----------|----------|
-| Worker error rate | >5% for 5 min | P1 |
-| Payment success rate | <90% for 15 min | P1 |
-| Webhook delivery failures | >10 in 1 hour | P2 |
-| New disputes | Any | P2 |
-| Database CPU | >80% sustained | P2 |
+| Alert                     | Threshold       | Priority |
+| ------------------------- | --------------- | -------- |
+| Worker error rate         | >5% for 5 min   | P1       |
+| Payment success rate      | <90% for 15 min | P1       |
+| Webhook delivery failures | >10 in 1 hour   | P2       |
+| New disputes              | Any             | P2       |
+| Database CPU              | >80% sustained  | P2       |
 
 ### On-Call Checklist
 
 Daily:
+
 - [ ] Check Worker error rate
 - [ ] Check payment success rate
 - [ ] Review moderation queue
 
 Weekly:
+
 - [ ] Check webhook delivery success
 - [ ] Review audit log for anomalies
 - [ ] Check disk/storage usage
 
 Monthly:
+
 - [ ] Review dispute rate
 - [ ] Check certificate expiry
 - [ ] Test restore procedure

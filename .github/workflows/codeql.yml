@@ -7,7 +7,7 @@ on:
     branches: [main]
   schedule:
     # Run weekly on Monday at 00:00 UTC
-    - cron: "0 0 * * 1"
+    - cron: '0 0 * * 1'
 
 permissions:
   security-events: write
@@ -41,4 +41,4 @@ jobs:
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
         with:
-          category: "/language:${{ matrix.language }}"
+          category: '/language:${{ matrix.language }}'

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/require-await, @typescript-eslint/no-misused-promises */
 /**
  * Test helpers and fake dependencies for integration tests.
  *
@@ -62,8 +63,8 @@ export interface FakeDbOptions {
 }
 
 export function fakeDb(options: FakeDbOptions = {}): Db {
-  const reservations = options.reservations ?? new Map();
-  const profiles = options.profiles ?? new Map();
+  const _reservations = options.reservations ?? new Map();
+  const _profiles = options.profiles ?? new Map();
   const stripeEvents = options.stripeEvents ?? new Set();
 
   return {
@@ -121,9 +122,9 @@ export function fakeRateLimiter(options: FakeRateLimiterOptions = {}): RateLimit
   return {
     async consume(policy: string, _key: string) {
       if (!allowAll || blockedPolicies.has(policy)) {
-        return { allowed: false, retryAfter: 60 };
+        return { allowed: false, limit: 10, remaining: 0, retryAfter: 60 };
       }
-      return { allowed: true };
+      return { allowed: true, limit: 10, remaining: 9, retryAfter: 0 };
     },
   };
 }
@@ -132,7 +133,13 @@ export function fakeRateLimiter(options: FakeRateLimiterOptions = {}): RateLimit
 // Fake Turnstile Verifier
 // -----------------------------------------------------------------------------
 
-export function fakeTurnstile(result: TurnstileResult = { ok: true, hostname: 'localhost', challengeTs: new Date().toISOString() }): TurnstileVerifier {
+export function fakeTurnstile(
+  result: TurnstileResult = {
+    ok: true,
+    hostname: 'localhost',
+    challengeTs: new Date().toISOString(),
+  },
+): TurnstileVerifier {
   return async () => result;
 }
 
@@ -202,9 +209,11 @@ export function fakeImages(): ImageClient {
 
 export function fakeAnalytics(): AnalyticsClient {
   return {
-    recordView: async () => {},
-    recordClick: async () => {},
-    flush: async () => {},
+    recordView: () => {},
+    recordClick: () => {},
+    recordImpressions: () => {},
+    flushAll: async () => {},
+    backlog: async () => 0,
   };
 }
 

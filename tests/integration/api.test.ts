@@ -10,8 +10,8 @@
  * (CSRF, origin validation) are the priority.
  */
 
-import { describe, expect, it, beforeEach } from 'vitest';
-import { createTestApp, type TestAppOptions } from './test-helpers';
+import { describe, expect, it } from 'vitest';
+import { createTestApp } from './test-helpers';
 import { signPayload } from '../../worker/lib/crypto';
 import { CSRF_TTL_SECONDS, COOKIE_CSRF, CORRELATION_HEADER } from '@shared/constants';
 
@@ -74,7 +74,7 @@ describe('Origin validation', () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Origin': 'http://evil.com',
+        Origin: 'http://evil.com',
       },
       body: JSON.stringify({}),
     });
@@ -105,7 +105,7 @@ describe('CSRF validation', () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Origin': 'http://localhost:3000',
+        Origin: 'http://localhost:3000',
       },
       body: JSON.stringify({}),
     });
@@ -126,9 +126,9 @@ describe('CSRF validation', () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Origin': 'http://localhost:3000',
+        Origin: 'http://localhost:3000',
         'X-CSRF-Token': headerToken,
-        'Cookie': `${COOKIE_CSRF}=${cookieToken}`,
+        Cookie: `${COOKIE_CSRF}=${cookieToken}`,
       },
       body: JSON.stringify({}),
     });
@@ -146,9 +146,9 @@ describe('CSRF validation', () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Origin': 'http://localhost:3000',
+        Origin: 'http://localhost:3000',
         'X-CSRF-Token': token,
-        'Cookie': `${COOKIE_CSRF}=${token}`,
+        Cookie: `${COOKIE_CSRF}=${token}`,
       },
       body: JSON.stringify({ x: 0, y: 0, w: 1, h: 1 }),
     });
@@ -192,7 +192,7 @@ describe('Admin route protection', () => {
     const req = new Request('http://localhost:3000/api/admin/queue', {
       method: 'GET',
       headers: {
-        'Origin': 'http://evil.com',
+        Origin: 'http://evil.com',
       },
     });
     const res = await app.request(req);
@@ -235,14 +235,14 @@ describe('Rate limiting', () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Origin': 'http://localhost:3000',
+        Origin: 'http://localhost:3000',
         'X-CSRF-Token': token,
-        'Cookie': `${COOKIE_CSRF}=${token}`,
+        Cookie: `${COOKIE_CSRF}=${token}`,
       },
       body: JSON.stringify({ x: 0, y: 0, w: 1, h: 1 }),
     });
 
-    const res = await app.request(req);
+    const _res = await app.request(req);
 
     // Should be rate limited (429) or pass through to next check
     // The rate limiter is global for mutations, so if blocked, we get 429
@@ -357,9 +357,9 @@ describe('Body size limits', () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Origin': 'http://localhost:3000',
+        Origin: 'http://localhost:3000',
         'X-CSRF-Token': token,
-        'Cookie': `${COOKIE_CSRF}=${token}`,
+        Cookie: `${COOKIE_CSRF}=${token}`,
         'Content-Length': '50',
       },
       body: JSON.stringify({ x: 0, y: 0, w: 1, h: 1 }),
@@ -383,9 +383,9 @@ describe('Body size limits', () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Origin': 'http://localhost:3000',
+        Origin: 'http://localhost:3000',
         'X-CSRF-Token': token,
-        'Cookie': `${COOKIE_CSRF}=${token}`,
+        Cookie: `${COOKIE_CSRF}=${token}`,
         'Content-Length': '100000000', // 100MB - definitely too large
       },
       body: '{}',

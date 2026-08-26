@@ -5,7 +5,7 @@
  * and other signed payloads.
  */
 
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   base64UrlToBytes,
   base64UrlToUtf8,

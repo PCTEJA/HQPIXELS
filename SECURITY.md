@@ -41,6 +41,7 @@ sequenceDiagram
 ```
 
 **Security features:**
+
 - PKCE prevents authorization code interception
 - Tokens stored in `HttpOnly`, `Secure`, `SameSite=Lax` cookies
 - No tokens in localStorage or JavaScript-accessible storage
@@ -48,12 +49,12 @@ sequenceDiagram
 
 ### Session Management
 
-| Cookie | Flags | Purpose |
-|--------|-------|---------|
-| `sb-access-token` | HttpOnly, Secure, SameSite=Lax | JWT access token |
-| `sb-refresh-token` | HttpOnly, Secure, SameSite=Lax | Refresh token |
-| `csrf-token` | HttpOnly, Secure, SameSite=Strict | CSRF protection |
-| `visitor` | Secure, SameSite=Lax | Analytics correlation |
+| Cookie             | Flags                             | Purpose               |
+| ------------------ | --------------------------------- | --------------------- |
+| `sb-access-token`  | HttpOnly, Secure, SameSite=Lax    | JWT access token      |
+| `sb-refresh-token` | HttpOnly, Secure, SameSite=Lax    | Refresh token         |
+| `csrf-token`       | HttpOnly, Secure, SameSite=Strict | CSRF protection       |
+| `visitor`          | Secure, SameSite=Lax              | Analytics correlation |
 
 ---
 
@@ -77,13 +78,13 @@ CREATE POLICY "reservations_admin_select" ON reservations
 
 **RLS policy categories:**
 
-| Table | anon | authenticated (owner) | authenticated (other) | admin |
-|-------|------|----------------------|----------------------|-------|
-| `placements` (active) | SELECT | SELECT | SELECT | ALL |
-| `reservations` | - | SELECT (own) | - | SELECT |
-| `payments` | - | SELECT (own) | - | SELECT |
-| `profiles` | - | SELECT/UPDATE (own) | - | ALL |
-| `audit_logs` | - | - | - | SELECT |
+| Table                 | anon   | authenticated (owner) | authenticated (other) | admin  |
+| --------------------- | ------ | --------------------- | --------------------- | ------ |
+| `placements` (active) | SELECT | SELECT                | SELECT                | ALL    |
+| `reservations`        | -      | SELECT (own)          | -                     | SELECT |
+| `payments`            | -      | SELECT (own)          | -                     | SELECT |
+| `profiles`            | -      | SELECT/UPDATE (own)   | -                     | ALL    |
+| `audit_logs`          | -      | -                     | -                     | SELECT |
 
 ### Admin Protection
 
@@ -98,7 +99,7 @@ Admin status requires THREE checks:
 export async function requireAdmin(c: AppContext): Promise<AdminUser> {
   const user = await requireVerifiedUser(c);
   const allowlist = c.get('deps').config.adminEmailAllowlist;
-  
+
   if (!user.isAdmin || !allowlist.includes(user.email)) {
     throw new ApiError('forbidden', 'Admin access required');
   }
@@ -107,6 +108,7 @@ export async function requireAdmin(c: AppContext): Promise<AdminUser> {
 ```
 
 **Admin privilege protection:**
+
 - `tg_protect_profile_privileges` trigger blocks self-granting admin
 - `grant_admin()` function is explicitly revoked from `service_role`
 - Only database owner can grant admin status
@@ -128,6 +130,7 @@ graph LR
 ```
 
 **Validation chain:**
+
 1. Client sends only `(x, y, width, height)` — no price field exists in schema
 2. Worker calls `quote_total_cents(x, y, w, h)` SQL function
 3. Result compared against `shared/pricing.ts` — mismatch throws
@@ -141,28 +144,25 @@ graph LR
 app.post('/api/stripe/webhook', async (c) => {
   const rawBody = await c.req.text();
   const signature = c.req.header('stripe-signature');
-  
+
   // CRITICAL: Verify signature on raw body BEFORE parsing
-  const event = stripe.webhooks.constructEvent(
-    rawBody,
-    signature,
-    WEBHOOK_SECRET
-  );
-  
+  const event = stripe.webhooks.constructEvent(rawBody, signature, WEBHOOK_SECRET);
+
   // Idempotency check
-  const { recorded } = await db.rpc('record_stripe_event', { 
-    event_id: event.id 
+  const { recorded } = await db.rpc('record_stripe_event', {
+    event_id: event.id,
   });
-  
+
   if (!recorded) {
     return c.json({ received: true }); // Already processed
   }
-  
+
   // Process event...
 });
 ```
 
 **Webhook guarantees:**
+
 - Signature verified before JSON parsing
 - `stripe_events.id` PRIMARY KEY enforces idempotency
 - Out-of-order events handled gracefully
@@ -170,12 +170,12 @@ app.post('/api/stripe/webhook', async (c) => {
 
 ### Checkout Constraints
 
-| Constraint | Enforcement |
-|------------|-------------|
-| One open checkout per reservation | Partial unique index `payments_one_open_per_reservation` |
-| One settled payment per reservation | Partial unique index `payments_one_settled_per_reservation` |
+| Constraint                            | Enforcement                                                          |
+| ------------------------------------- | -------------------------------------------------------------------- |
+| One open checkout per reservation     | Partial unique index `payments_one_open_per_reservation`             |
+| One settled payment per reservation   | Partial unique index `payments_one_settled_per_reservation`          |
 | Payment must match reservation amount | `settle_payment()` verifies `amount_cents = reservation.total_cents` |
-| Reservation must be reserved state | State machine trigger blocks invalid transitions |
+| Reservation must be reserved state    | State machine trigger blocks invalid transitions                     |
 
 ---
 
@@ -201,6 +201,7 @@ export const createReservationSchema = z.object({
 Destination URLs undergo extensive validation in `shared/url-safety.ts`:
 
 **Blocked patterns:**
+
 - `javascript:`, `data:`, `file:` schemes
 - IP addresses (literal or obfuscated)
 - Private networks (10.x, 172.16-31.x, 192.168.x)
@@ -209,6 +210,7 @@ Destination URLs undergo extensive validation in `shared/url-safety.ts`:
 - Credentials in URL (`user:pass@host`)
 
 **Allowed:**
+
 - `http://` and `https://` only
 - Public domain names only
 - Maximum 2000 characters
@@ -221,7 +223,7 @@ User text (display names, descriptions) is normalized:
 // shared/text.ts
 export function normalizeSingleLine(input: string): string {
   return input
-    .normalize('NFKC')           // Unicode normalization
+    .normalize('NFKC') // Unicode normalization
     .replace(/[\x00-\x1f]/g, '') // Control characters
     .replace(/[\u200b-\u200f]/g, '') // Zero-width chars
     .trim();
@@ -251,12 +253,12 @@ Content-Security-Policy:
 
 **Design decisions:**
 
-| Directive | Value | Rationale |
-|-----------|-------|-----------|
-| `script-src` | `'self'` + named hosts | No `'unsafe-inline'`, no `'unsafe-eval'` |
-| `style-src` | includes `'unsafe-inline'` | Required for PixiJS canvas and Turnstile widget |
-| `frame-ancestors` | `'none'` | Prevents clickjacking |
-| No `'strict-dynamic'` | Intentional | Static build cannot carry per-request nonce |
+| Directive             | Value                      | Rationale                                       |
+| --------------------- | -------------------------- | ----------------------------------------------- |
+| `script-src`          | `'self'` + named hosts     | No `'unsafe-inline'`, no `'unsafe-eval'`        |
+| `style-src`           | includes `'unsafe-inline'` | Required for PixiJS canvas and Turnstile widget |
+| `frame-ancestors`     | `'none'`                   | Prevents clickjacking                           |
+| No `'strict-dynamic'` | Intentional                | Static build cannot carry per-request nonce     |
 
 **CI enforcement:** `scripts/assert-no-inline-scripts.mjs` verifies the build contains no inline scripts.
 
@@ -303,6 +305,7 @@ export function detectImageFormat(buffer: ArrayBuffer): ImageFormat | null {
 ```
 
 **Upload constraints:**
+
 - Maximum 2MB file size
 - Only PNG, JPEG, WebP, GIF accepted
 - No SVG (can contain scripts)
@@ -314,13 +317,13 @@ export function detectImageFormat(buffer: ArrayBuffer): ImageFormat | null {
 
 ### Per-Endpoint Limits
 
-| Endpoint | Limit | Window |
-|----------|-------|--------|
-| Anonymous read | 60/min | Per IP |
-| Authenticated read | 120/min | Per user |
-| Mutations (POST/PUT/DELETE) | 10/min | Per IP |
-| Login attempts | 5/min | Per IP |
-| Checkout creation | 3/min | Per user |
+| Endpoint                    | Limit   | Window   |
+| --------------------------- | ------- | -------- |
+| Anonymous read              | 60/min  | Per IP   |
+| Authenticated read          | 120/min | Per user |
+| Mutations (POST/PUT/DELETE) | 10/min  | Per IP   |
+| Login attempts              | 5/min   | Per IP   |
+| Checkout creation           | 3/min   | Per user |
 
 ### Implementation
 
@@ -333,15 +336,15 @@ export class RateLimiterDO extends DurableObject {
     // Sliding window algorithm using SQLite
     const now = Date.now();
     const windowStart = now - windowMs;
-    
+
     // Clean old entries
     this.sql.exec('DELETE FROM requests WHERE timestamp < ?', [windowStart]);
-    
+
     // Count recent requests
     const count = this.sql.exec('SELECT COUNT(*) FROM requests WHERE key = ?', [key]);
-    
+
     if (count >= limit) return false;
-    
+
     // Record this request
     this.sql.exec('INSERT INTO requests (key, timestamp) VALUES (?, ?)', [key, now]);
     return true;
@@ -389,14 +392,14 @@ $$ LANGUAGE plpgsql;
 
 ### Logged Events
 
-| Event Type | Recorded Data |
-|------------|---------------|
-| `session_created` | User ID, IP prefix, user agent |
-| `reservation_created` | Reservation ID, cells, amount |
-| `payment_settled` | Payment ID, Stripe session ID |
-| `moderation_action` | Placement ID, action, reason, actor |
-| `admin_login` | User ID, IP, success/failure |
-| `security_violation` | Type, details, IP |
+| Event Type            | Recorded Data                       |
+| --------------------- | ----------------------------------- |
+| `session_created`     | User ID, IP prefix, user agent      |
+| `reservation_created` | Reservation ID, cells, amount       |
+| `payment_settled`     | Payment ID, Stripe session ID       |
+| `moderation_action`   | Placement ID, action, reason, actor |
+| `admin_login`         | User ID, IP, success/failure        |
+| `security_violation`  | Type, details, IP                   |
 
 ### Redacting Logger
 
@@ -405,8 +408,14 @@ The logger automatically redacts sensitive fields:
 ```typescript
 // worker/lib/logger.ts
 const REDACTED_FIELDS = [
-  'password', 'secret', 'token', 'key', 'authorization',
-  'cookie', 'x-csrf-token', 'stripe-signature'
+  'password',
+  'secret',
+  'token',
+  'key',
+  'authorization',
+  'cookie',
+  'x-csrf-token',
+  'stripe-signature',
 ];
 ```
 
@@ -416,16 +425,16 @@ const REDACTED_FIELDS = [
 
 These are known risks that cannot be fully mitigated by technical controls:
 
-| Risk | Severity | Mitigation | Residual |
-|------|----------|------------|----------|
-| CSS data exfiltration via `style-src 'unsafe-inline'` | Low | Required for PixiJS/Turnstile; no sensitive data in DOM | Accept |
-| Malicious destination URLs | Medium | URL validation + moderation queue | Manual review required |
-| DDOS against database | Medium | Rate limiting + Cloudflare protection | Supabase scales to plan limits |
-| Stripe webhook replay (pre-idempotency) | Low | `stripe_events.id` PK enforces single processing | Accept |
-| Social engineering of admin | High | Email allowlist + audit log | Training required |
-| Supabase service compromise | Critical | RLS limits blast radius; no admin via RPC | Trust boundary |
-| Image with embedded malware | Low | Cloudflare Images reprocesses; no execution context | Accept |
-| DNS hijacking | Medium | DNSSEC enabled; CAA records | Monitor Certificate Transparency |
+| Risk                                                  | Severity | Mitigation                                              | Residual                         |
+| ----------------------------------------------------- | -------- | ------------------------------------------------------- | -------------------------------- |
+| CSS data exfiltration via `style-src 'unsafe-inline'` | Low      | Required for PixiJS/Turnstile; no sensitive data in DOM | Accept                           |
+| Malicious destination URLs                            | Medium   | URL validation + moderation queue                       | Manual review required           |
+| DDOS against database                                 | Medium   | Rate limiting + Cloudflare protection                   | Supabase scales to plan limits   |
+| Stripe webhook replay (pre-idempotency)               | Low      | `stripe_events.id` PK enforces single processing        | Accept                           |
+| Social engineering of admin                           | High     | Email allowlist + audit log                             | Training required                |
+| Supabase service compromise                           | Critical | RLS limits blast radius; no admin via RPC               | Trust boundary                   |
+| Image with embedded malware                           | Low      | Cloudflare Images reprocesses; no execution context     | Accept                           |
+| DNS hijacking                                         | Medium   | DNSSEC enabled; CAA records                             | Monitor Certificate Transparency |
 
 ### Unmitigatable Risks
 

@@ -30,10 +30,10 @@ test.describe('Accessibility Audit (WCAG 2.1 AA) @a11y', () => {
   for (const { path, name } of PUBLIC_PAGES) {
     test(`${name} page (${path}) passes axe-core`, async ({ page }) => {
       await page.goto(path);
-      
+
       // Wait for page to be fully loaded
       await page.waitForLoadState('networkidle');
-      
+
       // Allow time for any async content to render
       await page.waitForTimeout(500);
 
@@ -112,12 +112,12 @@ test.describe('Form Accessibility @a11y', () => {
 
   test('form error messages are accessible', async ({ page }) => {
     await page.goto('/contact');
-    
+
     // Try to submit empty form to trigger validation
     const submitButton = page.getByRole('button', { name: /submit|send/i });
-    if (await submitButton.count() > 0) {
+    if ((await submitButton.count()) > 0) {
       await submitButton.click();
-      
+
       // Wait for potential validation messages
       await page.waitForTimeout(500);
 
@@ -135,16 +135,14 @@ test.describe('Image Accessibility @a11y', () => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
-    const results = await new AxeBuilder({ page })
-      .options({ runOnly: ['image-alt'] })
-      .analyze();
+    const results = await new AxeBuilder({ page }).options({ runOnly: ['image-alt'] }).analyze();
 
     expect(results.violations).toEqual([]);
   });
 
   test('decorative images are properly marked', async ({ page }) => {
     await page.goto('/');
-    
+
     // Check that decorative images have empty alt or role="presentation"
     const images = page.locator('img');
     const imageCount = await images.count();
@@ -156,11 +154,8 @@ test.describe('Image Accessibility @a11y', () => {
       const ariaHidden = await img.getAttribute('aria-hidden');
 
       // Each image should have alt text, or be marked as decorative
-      const isAccessible = 
-        alt !== null ||
-        role === 'presentation' ||
-        role === 'none' ||
-        ariaHidden === 'true';
+      const isAccessible =
+        alt !== null || role === 'presentation' || role === 'none' || ariaHidden === 'true';
 
       expect(isAccessible).toBe(true);
     }

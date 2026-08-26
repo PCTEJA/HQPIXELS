@@ -208,6 +208,7 @@ graph LR
 ```
 
 **Configuration:**
+
 - 60 requests per minute for anonymous users
 - 120 requests per minute for authenticated users
 - 10 requests per minute for mutations (POST/PUT/DELETE)
@@ -228,18 +229,19 @@ graph TB
 ```
 
 **Events buffered:**
+
 - Page views (per placement)
 - Link clicks (per placement)
 - Impressions (viewport visibility)
 
 ## Cron Jobs
 
-| Job | Schedule | Purpose |
-|-----|----------|---------|
-| `reconcile_expired` | Every 5 min | Expire unpaid reservations, release cells |
-| `rebuild_manifest` | Every 5 min | Regenerate wall manifest from active placements |
-| `link_health` | Daily | Check destination URLs, disable broken links |
-| `leaderboard_snapshot` | Hourly | Capture top placements by views/clicks |
+| Job                    | Schedule    | Purpose                                         |
+| ---------------------- | ----------- | ----------------------------------------------- |
+| `reconcile_expired`    | Every 5 min | Expire unpaid reservations, release cells       |
+| `rebuild_manifest`     | Every 5 min | Regenerate wall manifest from active placements |
+| `link_health`          | Daily       | Check destination URLs, disable broken links    |
+| `leaderboard_snapshot` | Hourly      | Capture top placements by views/clicks          |
 
 ```mermaid
 graph LR
@@ -261,11 +263,11 @@ graph LR
 
 ### Cache Layers
 
-| Layer | TTL | Content |
-|-------|-----|---------|
-| CDN (Cloudflare) | 1 year | Static assets (immutable hashes) |
-| KV Cache | 5 min | Wall manifest, pricing, stats |
-| Browser | 5 min | API responses (stale-while-revalidate) |
+| Layer            | TTL    | Content                                |
+| ---------------- | ------ | -------------------------------------- |
+| CDN (Cloudflare) | 1 year | Static assets (immutable hashes)       |
+| KV Cache         | 5 min  | Wall manifest, pricing, stats          |
+| Browser          | 5 min  | API responses (stale-while-revalidate) |
 
 ### Cache Invalidation
 
@@ -282,31 +284,33 @@ graph TB
 ```
 
 **Invalidation events:**
+
 - Payment settled → Placement becomes active
 - Moderation action → Placement visibility changes
 - Reservation expired → Cells released
 
 ## API Routes
 
-| Route | Method | Auth | Purpose |
-|-------|--------|------|---------|
-| `/api/auth/*` | Various | Public | PKCE auth flow |
-| `/api/public/pricing` | GET | Public | Current pricing info |
-| `/api/public/stats` | GET | Public | Aggregate statistics |
-| `/api/wall/manifest` | GET | Public | Active placements |
-| `/api/reservations/create` | POST | Auth | Reserve cells |
-| `/api/uploads/request` | POST | Auth | Get presigned upload URL |
-| `/api/checkout/session` | POST | Auth | Create Stripe session |
-| `/api/stripe/webhook` | POST | Stripe | Payment events |
-| `/api/dashboard/*` | Various | Auth | User dashboard |
-| `/api/admin/*` | Various | Admin | Moderation queue |
-| `/go/:id` | GET | Public | Redirect to placement URL |
+| Route                      | Method  | Auth   | Purpose                   |
+| -------------------------- | ------- | ------ | ------------------------- |
+| `/api/auth/*`              | Various | Public | PKCE auth flow            |
+| `/api/public/pricing`      | GET     | Public | Current pricing info      |
+| `/api/public/stats`        | GET     | Public | Aggregate statistics      |
+| `/api/wall/manifest`       | GET     | Public | Active placements         |
+| `/api/reservations/create` | POST    | Auth   | Reserve cells             |
+| `/api/uploads/request`     | POST    | Auth   | Get presigned upload URL  |
+| `/api/checkout/session`    | POST    | Auth   | Create Stripe session     |
+| `/api/stripe/webhook`      | POST    | Stripe | Payment events            |
+| `/api/dashboard/*`         | Various | Auth   | User dashboard            |
+| `/api/admin/*`             | Various | Admin  | Moderation queue          |
+| `/go/:id`                  | GET     | Public | Redirect to placement URL |
 
 ## Security Architecture
 
 See [SECURITY.md](SECURITY.md) for detailed security documentation.
 
 **Key security layers:**
+
 1. **Edge**: CSRF, origin validation, rate limiting, body limits
 2. **Database**: RLS policies, state machine triggers, immutable audit
 3. **Payments**: Webhook signature verification, price from DB only

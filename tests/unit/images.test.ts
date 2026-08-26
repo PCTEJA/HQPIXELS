@@ -13,11 +13,11 @@ import { describe, expect, it } from 'vitest';
 // For now, I'll create tests that match the expected API.
 
 // Magic bytes for various formats
-const PNG_HEADER = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
-const JPEG_HEADER = new Uint8Array([0xff, 0xd8, 0xff]);
+const _PNG_HEADER = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+const _JPEG_HEADER = new Uint8Array([0xff, 0xd8, 0xff]);
 const GIF87_HEADER = new Uint8Array([0x47, 0x49, 0x46, 0x38, 0x37, 0x61]); // GIF87a
 const GIF89_HEADER = new Uint8Array([0x47, 0x49, 0x46, 0x38, 0x39, 0x61]); // GIF89a
-const WEBP_HEADER = new Uint8Array([0x52, 0x49, 0x46, 0x46]); // RIFF
+const _WEBP_HEADER = new Uint8Array([0x52, 0x49, 0x46, 0x46]); // RIFF
 
 // Create a minimal valid PNG (8x8 pixels)
 function createMinimalPng(): Uint8Array {
@@ -27,8 +27,14 @@ function createMinimalPng(): Uint8Array {
   const ihdrLength = [0x00, 0x00, 0x00, 0x0d]; // 13 bytes
   const ihdrType = [0x49, 0x48, 0x44, 0x52]; // "IHDR"
   const ihdrData = [
-    0x00, 0x00, 0x00, 0x08, // width = 8
-    0x00, 0x00, 0x00, 0x08, // height = 8
+    0x00,
+    0x00,
+    0x00,
+    0x08, // width = 8
+    0x00,
+    0x00,
+    0x00,
+    0x08, // height = 8
     0x08, // bit depth = 8
     0x02, // color type = 2 (RGB)
     0x00, // compression = 0
@@ -38,34 +44,45 @@ function createMinimalPng(): Uint8Array {
   // CRC placeholder (not valid but enough for magic byte testing)
   const ihdrCrc = [0x00, 0x00, 0x00, 0x00];
 
-  return new Uint8Array([
-    ...signature,
-    ...ihdrLength,
-    ...ihdrType,
-    ...ihdrData,
-    ...ihdrCrc,
-  ]);
+  return new Uint8Array([...signature, ...ihdrLength, ...ihdrType, ...ihdrData, ...ihdrCrc]);
 }
 
 // Create a minimal JPEG with SOF marker
 function createMinimalJpeg(width: number, height: number): Uint8Array {
   return new Uint8Array([
-    0xff, 0xd8, 0xff, // SOI + APP0 marker
+    0xff,
+    0xd8,
+    0xff, // SOI + APP0 marker
     0xe0, // APP0
-    0x00, 0x10, // Length
-    0x4a, 0x46, 0x49, 0x46, 0x00, // "JFIF\0"
-    0x01, 0x01, // Version
+    0x00,
+    0x10, // Length
+    0x4a,
+    0x46,
+    0x49,
+    0x46,
+    0x00, // "JFIF\0"
+    0x01,
+    0x01, // Version
     0x00, // Units
-    0x00, 0x01, // X density
-    0x00, 0x01, // Y density
-    0x00, 0x00, // Thumbnail
-    0xff, 0xc0, // SOF0 marker (baseline)
-    0x00, 0x0b, // Length
+    0x00,
+    0x01, // X density
+    0x00,
+    0x01, // Y density
+    0x00,
+    0x00, // Thumbnail
+    0xff,
+    0xc0, // SOF0 marker (baseline)
+    0x00,
+    0x0b, // Length
     0x08, // Precision
-    (height >> 8) & 0xff, height & 0xff, // Height
-    (width >> 8) & 0xff, width & 0xff, // Width
+    (height >> 8) & 0xff,
+    height & 0xff, // Height
+    (width >> 8) & 0xff,
+    width & 0xff, // Width
     0x01, // Components
-    0x01, 0x11, 0x00, // Component data
+    0x01,
+    0x11,
+    0x00, // Component data
   ]);
 }
 
@@ -106,7 +123,7 @@ describe('magic byte detection', () => {
       for (let i = 0; i < data.length - 4; i++) {
         if (data[i] === 0xff && data[i + 1] === 0xc0) {
           // SOF0 found, dimensions are at offset +5 (height) and +7 (width)
-          const length = (data[i + 2]! << 8) | data[i + 3]!;
+          const _length = (data[i + 2]! << 8) | data[i + 3]!;
           const height = (data[i + 5]! << 8) | data[i + 6]!;
           const width = (data[i + 7]! << 8) | data[i + 8]!;
           expect(height).toBe(240);

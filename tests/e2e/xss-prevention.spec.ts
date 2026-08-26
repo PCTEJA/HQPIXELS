@@ -32,7 +32,7 @@ const XSS_PAYLOADS = [
 /**
  * Listen for JavaScript errors and alert() calls
  */
-async function setupXssDetection(page: Page): Promise<{ triggered: boolean; message: string }> {
+function setupXssDetection(page: Page): { triggered: boolean; message: string } {
   const result = { triggered: false, message: '' };
 
   // Catch any alert() calls
@@ -56,7 +56,7 @@ async function setupXssDetection(page: Page): Promise<{ triggered: boolean; mess
 test.describe('XSS Prevention - URL Parameters', () => {
   for (const payload of XSS_PAYLOADS.slice(0, 5)) {
     test(`blocks XSS in query param: ${payload.slice(0, 30)}...`, async ({ page }) => {
-      const detection = await setupXssDetection(page);
+      const detection = setupXssDetection(page);
 
       // Try the payload in a query parameter
       const encodedPayload = encodeURIComponent(payload);
@@ -75,7 +75,7 @@ test.describe('XSS Prevention - URL Parameters', () => {
   }
 
   test('XSS payload in focus parameter renders as text', async ({ page }) => {
-    const detection = await setupXssDetection(page);
+    const detection = setupXssDetection(page);
     const payload = '<script>alert("xss")</script>';
 
     await page.goto(`/wall?focus=${encodeURIComponent(payload)}`);
@@ -85,7 +85,7 @@ test.describe('XSS Prevention - URL Parameters', () => {
   });
 
   test('XSS payload in reservation parameter is harmless', async ({ page }) => {
-    const detection = await setupXssDetection(page);
+    const detection = setupXssDetection(page);
     const payload = '<img src=x onerror=alert(1)>';
 
     await page.goto(`/claim/success?reservation=${encodeURIComponent(payload)}`);
@@ -98,7 +98,7 @@ test.describe('XSS Prevention - URL Parameters', () => {
 
 test.describe('XSS Prevention - URL Hash', () => {
   test('XSS payload in hash is not executed', async ({ page }) => {
-    const detection = await setupXssDetection(page);
+    const detection = setupXssDetection(page);
 
     await page.goto('/#<script>alert(1)</script>');
     await page.waitForLoadState('networkidle');
@@ -110,7 +110,7 @@ test.describe('XSS Prevention - URL Hash', () => {
 
 test.describe('XSS Prevention - Search and Forms', () => {
   test('XSS in search input is escaped', async ({ page }) => {
-    const detection = await setupXssDetection(page);
+    const detection = setupXssDetection(page);
 
     await page.goto('/');
     await page.waitForLoadState('networkidle');
@@ -127,7 +127,7 @@ test.describe('XSS Prevention - Search and Forms', () => {
   });
 
   test('XSS in contact form is escaped', async ({ page }) => {
-    const detection = await setupXssDetection(page);
+    const detection = setupXssDetection(page);
 
     await page.goto('/contact');
     await page.waitForLoadState('networkidle');
@@ -164,7 +164,7 @@ test.describe('XSS Prevention - CSP Enforcement', () => {
 
     // Try to inject inline script via devtools/evaluate
     // This simulates what would happen if XSS got through output encoding
-    const result = await page.evaluate(() => {
+    const _result = await page.evaluate(() => {
       try {
         // This should be blocked by CSP
         const script = document.createElement('script');
@@ -208,7 +208,9 @@ test.describe('XSS Prevention - Data Attributes', () => {
 
     // Check that no href, src, or action attributes contain javascript:
     const dangerousLinks = await page.evaluate(() => {
-      const elements = document.querySelectorAll('[href^="javascript:"], [src^="javascript:"], [action^="javascript:"]');
+      const elements = document.querySelectorAll(
+        '[href^="javascript:"], [src^="javascript:"], [action^="javascript:"]',
+      );
       return elements.length;
     });
 

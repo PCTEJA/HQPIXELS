@@ -72,10 +72,9 @@ test.describe('Open Redirect Prevention - /go Endpoint', () => {
 test.describe('Open Redirect Prevention - Auth Endpoints', () => {
   test('auth callback does not redirect to external domains', async ({ page }) => {
     // Try to inject an external redirect in the callback
-    const response = await page.request.get(
-      '/api/auth/callback?next=https://evil.example.com',
-      { maxRedirects: 0 }
-    );
+    const response = await page.request.get('/api/auth/callback?next=https://evil.example.com', {
+      maxRedirects: 0,
+    });
 
     if (response.status() === 302 || response.status() === 303) {
       const location = response.headers()['location'];
@@ -86,7 +85,9 @@ test.describe('Open Redirect Prevention - Auth Endpoints', () => {
         if (location.startsWith('http')) {
           const url = new URL(location);
           // Either localhost or our actual domain
-          expect(['localhost', '127.0.0.1', 'hqpixels.com']).toContain(url.hostname.replace('www.', ''));
+          expect(['localhost', '127.0.0.1', 'hqpixels.com']).toContain(
+            url.hostname.replace('www.', ''),
+          );
         }
       }
     }
@@ -106,7 +107,7 @@ test.describe('Open Redirect Prevention - Auth Endpoints', () => {
     for (const next of maliciousNextValues) {
       const response = await page.request.get(
         `/api/auth/callback?next=${encodeURIComponent(next)}`,
-        { maxRedirects: 0 }
+        { maxRedirects: 0 },
       );
 
       if (response.status() === 302 || response.status() === 303) {
@@ -204,7 +205,7 @@ test.describe('Open Redirect Prevention - General', () => {
       if (action.startsWith('http')) {
         const url = new URL(action);
         expect(['localhost', '127.0.0.1', 'hqpixels.com']).toContain(
-          url.hostname.replace('www.', '')
+          url.hostname.replace('www.', ''),
         );
       }
     }
@@ -221,9 +222,7 @@ test.describe('Safe Redirect Implementation', () => {
     const url = new URL(currentUrl);
 
     // Should be on localhost (dev) or hqpixels.com (prod)
-    expect(['localhost', '127.0.0.1', 'hqpixels.com']).toContain(
-      url.hostname.replace('www.', '')
-    );
+    expect(['localhost', '127.0.0.1', 'hqpixels.com']).toContain(url.hostname.replace('www.', ''));
   });
 
   test('redirect responses have proper headers', async ({ page }) => {

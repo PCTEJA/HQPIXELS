@@ -3,7 +3,7 @@ name: Scheduled Dependency Check
 on:
   schedule:
     # Run every Monday at 09:00 UTC
-    - cron: "0 9 * * 1"
+    - cron: '0 9 * * 1'
   workflow_dispatch:
 
 permissions:
@@ -22,13 +22,13 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: "9"
+          version: '9'
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
-          cache: "pnpm"
+          node-version: '22'
+          cache: 'pnpm'
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -64,21 +64,21 @@ jobs:
           script: |
             const fs = require('fs');
             const audit = JSON.parse(fs.readFileSync('/tmp/audit.json', 'utf8'));
-            
+
             const title = `Security: Vulnerabilities detected in dependencies`;
             const body = `## Security Audit Results
-            
+
             Vulnerabilities were detected during the scheduled dependency check.
-            
+
             \`\`\`json
             ${JSON.stringify(audit, null, 2).slice(0, 60000)}
             \`\`\`
-            
+
             Please review and update affected packages.
-            
+
             ---
             *This issue was automatically created by the scheduled dependency check workflow.*`;
-            
+
             // Check if an open issue already exists
             const issues = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
@@ -86,9 +86,9 @@ jobs:
               state: 'open',
               labels: 'security,dependencies'
             });
-            
+
             const existingIssue = issues.data.find(i => i.title === title);
-            
+
             if (!existingIssue) {
               await github.rest.issues.create({
                 owner: context.repo.owner,

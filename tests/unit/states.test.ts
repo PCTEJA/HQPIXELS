@@ -12,7 +12,6 @@ import {
   RESERVATION_STATES,
   STATES_ELIGIBLE_FOR_EXPIRY,
   STATES_HOLDING_CELLS,
-  type ReservationState,
 } from '@shared/states';
 
 describe('RESERVATION_STATES', () => {

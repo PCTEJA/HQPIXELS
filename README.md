@@ -13,14 +13,14 @@ An interactive pixel-ad marketplace for [hqpixels.com](https://hqpixels.com). Us
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|------------|
-| Frontend | React 19, Vite 6, Tailwind CSS 4, PixiJS 8, TanStack Query 5 |
-| Backend | Hono 4 on Cloudflare Workers |
-| Database | Supabase (PostgreSQL 17) with RLS |
-| Payments | Stripe Checkout + webhooks |
-| Validation | Zod 3 |
-| Testing | Vitest 3, Playwright 1.6x |
+| Layer      | Technology                                                   |
+| ---------- | ------------------------------------------------------------ |
+| Frontend   | React 19, Vite 6, Tailwind CSS 4, PixiJS 8, TanStack Query 5 |
+| Backend    | Hono 4 on Cloudflare Workers                                 |
+| Database   | Supabase (PostgreSQL 17) with RLS                            |
+| Payments   | Stripe Checkout + webhooks                                   |
+| Validation | Zod 3                                                        |
+| Testing    | Vitest 3, Playwright 1.6x                                    |
 
 ## Quick Start
 
@@ -87,19 +87,19 @@ Visit [http://localhost:5173](http://localhost:5173).
 
 ## Available Scripts
 
-| Script | Description |
-|--------|-------------|
-| `pnpm dev` | Start Vite dev server |
-| `pnpm build` | Typecheck, generate headers, build for production |
-| `pnpm test` | Run Vitest unit tests |
-| `pnpm test:e2e` | Run Playwright E2E tests |
-| `pnpm test:a11y` | Run accessibility tests only |
-| `pnpm typecheck` | Check all TypeScript configs |
-| `pnpm lint` | ESLint with zero warnings |
-| `pnpm format` | Prettier format all files |
-| `pnpm verify` | Full verification (format, lint, typecheck, test) |
-| `pnpm deploy:staging` | Deploy to Cloudflare Workers staging |
-| `pnpm deploy:production` | Deploy to Cloudflare Workers production |
+| Script                   | Description                                       |
+| ------------------------ | ------------------------------------------------- |
+| `pnpm dev`               | Start Vite dev server                             |
+| `pnpm build`             | Typecheck, generate headers, build for production |
+| `pnpm test`              | Run Vitest unit tests                             |
+| `pnpm test:e2e`          | Run Playwright E2E tests                          |
+| `pnpm test:a11y`         | Run accessibility tests only                      |
+| `pnpm typecheck`         | Check all TypeScript configs                      |
+| `pnpm lint`              | ESLint with zero warnings                         |
+| `pnpm format`            | Prettier format all files                         |
+| `pnpm verify`            | Full verification (format, lint, typecheck, test) |
+| `pnpm deploy:staging`    | Deploy to Cloudflare Workers staging              |
+| `pnpm deploy:production` | Deploy to Cloudflare Workers production           |
 
 ## Project Structure
 

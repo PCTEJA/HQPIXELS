@@ -14,6 +14,8 @@ export default tseslint.config(
       'test-results/**',
       'worker/worker-env.d.ts',
       'supabase/**',
+      'tests/load/**', // k6 load tests (JavaScript, not TypeScript)
+      'scripts/**', // Build scripts (not type-checked)
     ],
   },
 
