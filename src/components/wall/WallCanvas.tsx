@@ -508,8 +508,12 @@ export function WallCanvas(props: WallCanvasProps): React.JSX.Element {
       return;
     }
 
+    let cancelled = false;
     void (async () => {
       const pixi = await import('pixi.js');
+      // Reserving invalidates the manifest while navigation unmounts the wall.
+      // Do not update a sprite destroyed during that asynchronous handoff.
+      if (cancelled || occupancy.destroyed || occupancyRef.current !== occupancy) return;
       const texture = pixi.Texture.from(buildOccupancyCanvas(occupancyBitmapRef.current));
       texture.source.scaleMode = 'nearest';
       const previous = occupancy.texture;
@@ -525,6 +529,9 @@ export function WallCanvas(props: WallCanvasProps): React.JSX.Element {
 
       scheduleDraw();
     })();
+    return () => {
+      cancelled = true;
+    };
   }, [manifest.manifestVersion, manifest.occupancyBitmap, buildOccupancyCanvas, scheduleDraw]);
 
   // Redraw when the parent changes selection or cursor.

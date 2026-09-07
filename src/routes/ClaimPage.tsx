@@ -146,7 +146,11 @@ export function ClaimPage(): React.JSX.Element {
           emailVerified={session.user?.emailVerified ?? false}
           onRequestSignIn={() => setSignInOpen(true)}
           onReserved={(reservationId) => {
-            setParams({ reservation: reservationId }, { replace: true });
+            // Use the same reservation-specific route as Dashboard's resume
+            // link, so the new hold and its preview travel together.
+            void navigate(`/claim/resume?reservation=${encodeURIComponent(reservationId)}`, {
+              replace: true,
+            });
             setStep('preview');
             setAnnouncement('Your units are held. Add your artwork and link next.');
           }}
