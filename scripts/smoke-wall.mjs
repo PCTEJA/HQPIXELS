@@ -210,9 +210,46 @@ try {
   assert.equal(createCount, 1);
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Your artwork and link' })).toBeVisible();
+  let uploaded = false;
+  let completed = false;
+  await page.route('https://wall.test/api/uploads/ticket', (route) =>
+    route.fulfill({
+      json: {
+        uploadUrl: 'https://upload.imagedelivery.net/test/image',
+        imageAssetId: 'image',
+      },
+    }),
+  );
+  await page.route('https://upload.imagedelivery.net/test/image', async (route) => {
+    const headers = {
+      'Access-Control-Allow-Origin': 'https://wall.test',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    };
+    if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers });
+    assert.equal(route.request().method(), 'POST');
+    assert.match(route.request().headers()['content-type'], /multipart\/form-data/);
+    uploaded = true;
+    await route.fulfill({ status: 200, headers, json: { success: true } });
+  });
+  await page.route('https://wall.test/api/uploads/complete', (route) => {
+    assert(uploaded);
+    completed = true;
+    return route.fulfill({ json: { ready: false, renderNote: null } });
+  });
+  await page.locator('#artwork').setInputFiles({
+    name: 'logo.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=',
+      'base64',
+    ),
+  });
+  await page.getByRole('button', { name: 'Upload artwork', exact: true }).click();
+  await expect(page.getByText('Artwork received', { exact: true })).toBeVisible();
+  assert(completed);
   assert.deepEqual(errors, []);
   console.log(
-    'PASS: wall selection, preview with delayed hold, new-claim navigation, missing-hold recovery, and strict CSP.',
+    'PASS: wall selection, fresh-claim preview, recovery, and artwork upload under strict CSP.',
   );
 } finally {
   await browser.close();

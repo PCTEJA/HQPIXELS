@@ -3,7 +3,7 @@
 # Cloudflare applies these to statically served assets, which the Worker never sees.
 
 /*
-  Content-Security-Policy: default-src 'none'; base-uri 'self'; script-src 'self' https://js.stripe.com https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://imagedelivery.net; connect-src 'self' https://api.stripe.com https://maps.googleapis.com https://challenges.cloudflare.com; frame-src https://js.stripe.com https://hooks.stripe.com https://challenges.cloudflare.com; form-action 'self' https://checkout.stripe.com; frame-ancestors 'none'; object-src 'none'; media-src 'none'; worker-src 'self' blob:; manifest-src 'self'
+  Content-Security-Policy: default-src 'none'; base-uri 'self'; script-src 'self' https://js.stripe.com https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://imagedelivery.net; connect-src 'self' https://api.stripe.com https://maps.googleapis.com https://challenges.cloudflare.com https://upload.imagedelivery.net; frame-src https://js.stripe.com https://hooks.stripe.com https://challenges.cloudflare.com; form-action 'self' https://checkout.stripe.com; frame-ancestors 'none'; object-src 'none'; media-src 'none'; worker-src 'self' blob:; manifest-src 'self'
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   X-Frame-Options: DENY

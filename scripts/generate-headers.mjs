@@ -61,7 +61,12 @@ export function buildStaticCsp({ imageHost = IMAGE_HOST, deployed = isDeployed }
     'style-src-elem': ["'self'", "'unsafe-inline'", FONTS_CSS],
     'font-src': ["'self'", FONTS_FILES, 'data:'],
     'img-src': ["'self'", 'data:', 'blob:', imageHost].filter((v) => v !== ''),
-    'connect-src': ["'self'", ...STRIPE_CONNECT.split(' '), TURNSTILE],
+    'connect-src': [
+      "'self'",
+      ...STRIPE_CONNECT.split(' '),
+      TURNSTILE,
+      'https://upload.imagedelivery.net',
+    ],
     'frame-src': [...STRIPE_FRAME.split(' '), TURNSTILE],
     'form-action': ["'self'", STRIPE_CHECKOUT],
     'frame-ancestors': ["'none'"],
