@@ -23,6 +23,7 @@ import {
   MAX_UPLOAD_BYTES,
 } from '@shared/constants';
 import { computeQuote } from '@shared/pricing';
+import { decodeOccupancy, isRectAvailable } from '@shared/occupancy';
 import { normalizeDestinationUrl } from '@shared/url-safety';
 import { ApiRequestError } from '../lib/api';
 import {
@@ -140,7 +141,7 @@ export function ClaimPage(): React.JSX.Element {
           onSelectionChange={setSelection}
           quote={activeQuote}
           serverAvailable={serverQuote.data?.available ?? null}
-          unavailableCells={serverQuote.data?.unavailableCells ?? []}
+          quoteError={serverQuote.isError ? serverQuote.error.message : null}
           quoteLoading={serverQuote.isFetching}
           reservationTtlSeconds={pricing.data?.reservationTtlSeconds ?? 2700}
           authenticated={session.authenticated}
@@ -291,7 +292,7 @@ interface ChooseStepProps {
   readonly onSelectionChange: (rect: { x: number; y: number; w: number; h: number } | null) => void;
   readonly quote: import('@shared/pricing').Quote | null;
   readonly serverAvailable: boolean | null;
-  readonly unavailableCells: ReadonlyArray<{ x: number; y: number }>;
+  readonly quoteError: string | null;
   readonly quoteLoading: boolean;
   readonly reservationTtlSeconds: number;
   readonly authenticated: boolean;
@@ -306,12 +307,48 @@ function ChooseStep(props: ChooseStepProps): React.JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [priceChanged, setPriceChanged] = useState<number | null>(null);
   const createReservation = useCreateReservation();
+  const occupancyBitmap = props.manifest?.occupancyBitmap;
+  const occupancy = useMemo(
+    () => (occupancyBitmap === undefined ? null : decodeOccupancy(occupancyBitmap)),
+    [occupancyBitmap],
+  );
+  const selectionUnavailable =
+    props.selection !== null &&
+    (props.serverAvailable === false ||
+      (occupancy !== null && !isRectAvailable(occupancy, props.selection)));
+
+  const selectionFeedback = props.selection !== null && (
+    <div id="selection-feedback" className="space-y-3">
+      {selectionUnavailable && (
+        <Alert tone="warning" title="Some selected units are unavailable">
+          Your selection overlaps units that are already held or claimed. Move or resize your
+          selection to choose available units.
+        </Alert>
+      )}
+      {props.quoteError !== null ? (
+        <Alert tone="danger" title="We could not check this selection">
+          {props.quoteError} Move or resize your selection to try again.
+        </Alert>
+      ) : props.quoteLoading ? (
+        <p className="text-xs text-ink-subtle" role="status">
+          Checking availability…
+        </p>
+      ) : !selectionUnavailable && props.serverAvailable === true ? (
+        <p className="text-xs text-success" role="status">
+          All units in that rectangle are available.
+        </p>
+      ) : null}
+    </div>
+  );
 
   const canReserve =
     props.selection !== null &&
     props.quote !== null &&
     props.pricingVersion !== null &&
     props.serverAvailable === true &&
+    !selectionUnavailable &&
+    !props.quoteLoading &&
+    props.quoteError === null &&
     props.authenticated &&
     props.emailVerified &&
     turnstileToken !== null &&
@@ -439,29 +476,12 @@ function ChooseStep(props: ChooseStepProps): React.JSX.Element {
                 </p>
               </div>
             )}
-
-            {/* Availability, from the server. */}
-            {props.quoteLoading ? (
-              <p className="mt-4 text-xs text-ink-subtle" role="status">
-                Checking availability…
-              </p>
-            ) : props.serverAvailable === false ? (
-              <Alert tone="warning" className="mt-4" title="Partly claimed">
-                {props.unavailableCells.length} unit
-                {props.unavailableCells.length === 1 ? '' : 's'} in that rectangle{' '}
-                {props.unavailableCells.length === 1 ? 'is' : 'are'} already taken. Move or resize
-                your selection.
-              </Alert>
-            ) : props.serverAvailable === true ? (
-              <p className="mt-4 text-xs text-success" role="status">
-                All units in that rectangle are available.
-              </p>
-            ) : null}
           </>
         )}
 
         {/* --- gates --------------------------------------------------------- */}
         <div className="mt-5 space-y-3">
+          {(!props.authenticated || !props.emailVerified) && selectionFeedback}
           {!props.authenticated ? (
             <>
               <Button variant="primary" className="w-full" onClick={props.onRequestSignIn}>
@@ -495,9 +515,12 @@ function ChooseStep(props: ChooseStepProps): React.JSX.Element {
                 </Alert>
               )}
 
+              {selectionFeedback}
+
               <Button
                 variant="cta"
                 className="w-full"
+                aria-describedby={props.selection !== null ? 'selection-feedback' : undefined}
                 disabled={!canReserve}
                 loading={createReservation.isPending}
                 loadingLabel="Holding your units"
