@@ -26,7 +26,7 @@ import { ApiError, validationFailed, zodFieldErrors } from '../lib/errors';
 import { NO_STORE } from '../lib/cache';
 import { audit, auditSecurityEvent } from '../lib/audit';
 import { pricingVersionFromRowChecked } from '../lib/pricing-adapter';
-import { absoluteImageUrl, isPlausibleUploadSize, sniffImage } from '../lib/images';
+import { isPlausibleUploadSize, sniffImage } from '../lib/images';
 import { isOk } from '../lib/supabase';
 
 export const reservationRoutes = new Hono<AppEnv>();
@@ -387,6 +387,31 @@ function respondToReserveFailure(
 // -----------------------------------------------------------------------------
 // GET /api/reservations/:reservationId
 // -----------------------------------------------------------------------------
+reservationRoutes.get('/:reservationId/artwork', async (c) => {
+  const deps = c.get('deps');
+  const user = await requireVerifiedUser(c);
+  const parsed = reservationIdParamSchema.safeParse({
+    reservationId: c.req.param('reservationId'),
+  });
+  if (!parsed.success) throw new ApiError('not_found');
+  const result = await deps.db.reservationDetail(parsed.data.reservationId, user.id);
+  if (!isOk(result)) throw new ApiError('not_found');
+  const placement = (result as unknown as { placement: { imagePath?: string } }).placement;
+  // Only validated images associated with this owner's reservation may be read.
+  const imageId = placement.imagePath?.split('/')[0];
+  if (!imageId || !/^[a-zA-Z0-9-]+$/.test(imageId)) throw new ApiError('not_found');
+  const bytes = await deps.images.fetchPreview(imageId);
+  const image = sniffImage(bytes);
+  if (!image.ok) throw new ApiError('unsupported_media_type');
+  return new Response(bytes, {
+    headers: {
+      'Content-Type': image.mime,
+      'Cache-Control': NO_STORE,
+      'X-Content-Type-Options': 'nosniff',
+    },
+  });
+});
+
 reservationRoutes.get('/:reservationId', async (c) => {
   const deps = c.get('deps');
   const user = await requireVerifiedUser(c);
@@ -418,7 +443,10 @@ reservationRoutes.get('/:reservationId', async (c) => {
   return c.json(
     {
       reservation: (result as unknown as { reservation: unknown }).reservation,
-      placement: { ...placement, imageUrl: absoluteImageUrl(deps.config, imagePath) },
+      placement: {
+        ...placement,
+        imageUrl: imagePath ? `/api/reservations/${parsed.data.reservationId}/artwork` : null,
+      },
       checkoutMinRemainingSeconds: CHECKOUT_MIN_REMAINING_SECONDS,
       termsVersion: CURRENT_TERMS_VERSION,
     },

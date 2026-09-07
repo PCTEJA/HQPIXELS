@@ -125,6 +125,22 @@ function normaliseEnvironment(value: string | undefined): Environment {
  * caller turns ConfigError into a 503 with a correlation id and logs which keys
  * are absent (names only — never values).
  */
+export function normalizeImageDeliveryBase(value: string): string {
+  const trimmed = value.trim().replace(/\/+$/, '');
+  // Dashboard examples include image/variant placeholders; only the account
+  // hash belongs in the delivery base used when appending a stored image path.
+  try {
+    const url = new URL(trimmed);
+    if (url.protocol === 'https:' && url.hostname === 'imagedelivery.net') {
+      const accountHash = url.pathname.split('/').filter(Boolean)[0];
+      return accountHash ? `${url.origin}/${accountHash}` : url.origin;
+    }
+  } catch {
+    /* Existing configuration checks handle missing values. */
+  }
+  return trimmed;
+}
+
 export function loadConfig(env: Env): AppConfig {
   const missing: string[] = [];
 
@@ -163,7 +179,7 @@ export function loadConfig(env: Env): AppConfig {
 
   const imagesAccountId = env.CF_IMAGES_ACCOUNT_ID?.trim() ?? '';
   const imagesApiToken = env.CF_IMAGES_API_TOKEN?.trim() ?? '';
-  const imagesDeliveryBase = (env.CF_IMAGES_DELIVERY_BASE?.trim() ?? '').replace(/\/+$/, '');
+  const imagesDeliveryBase = normalizeImageDeliveryBase(env.CF_IMAGES_DELIVERY_BASE ?? '');
   const imagesConfigured =
     imagesAccountId !== '' &&
     imagesApiToken !== '' &&

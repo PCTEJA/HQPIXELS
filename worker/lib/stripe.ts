@@ -141,9 +141,7 @@ export async function createCheckoutSession(
         rect: `${x},${y},${w},${h}`,
       },
       payment_intent_data: {
-        // Shown on the buyer's bank statement. Keep it recognisable or you get
-        // "I do not recognise this charge" disputes.
-        statement_descriptor_suffix: 'HQPIXELS',
+        // Use the account's descriptor. Managed Payments rejects a custom suffix.
         metadata: {
           reservation_id: input.reservationId,
           owner_id: input.ownerId,

@@ -322,6 +322,8 @@ export interface DirectUploadTicket {
 }
 
 export interface ImageClient {
+  /** Owner-authorized preview of a validated, still-private original. */
+  fetchPreview(imageAssetId: string): Promise<Uint8Array>;
   /** One-time upload URL, scoped to this user and reservation. */
   createDirectUpload(input: {
     ownerId: string;
@@ -343,6 +345,39 @@ export interface ImageClient {
 }
 
 class CloudflareImagesClient implements ImageClient {
+  async fetchPreview(imageAssetId: string): Promise<Uint8Array> {
+    const response = await this.fetchImpl(
+      `${this.base}/v1/${encodeURIComponent(imageAssetId)}/blob`,
+      {
+        headers: this.headers(),
+      },
+    );
+    if (!response.ok || response.body === null) throw new Error('Image preview unavailable');
+    const reader = response.body.getReader();
+    const chunks: Uint8Array[] = [];
+    let size = 0;
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        size += value.byteLength;
+        if (size > MAX_UPLOAD_BYTES) {
+          await reader.cancel();
+          throw new Error('Image preview exceeds upload limit');
+        }
+        chunks.push(value);
+      }
+    } finally {
+      reader.releaseLock();
+    }
+    const bytes = new Uint8Array(size);
+    let offset = 0;
+    for (const chunk of chunks) {
+      bytes.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
+    return bytes;
+  }
   constructor(
     private readonly config: AppConfig,
     // Native Workers fetch requires its global receiver, even when stored on
@@ -472,6 +507,9 @@ class CloudflareImagesClient implements ImageClient {
  * 502 with a log line rather than a TypeError.
  */
 class UnconfiguredImageClient implements ImageClient {
+  fetchPreview(): Promise<Uint8Array> {
+    return Promise.reject(new Error('image pipeline is not configured'));
+  }
   private fail(): never {
     throw new Error('image pipeline is not configured (CF_IMAGES_* missing)');
   }
