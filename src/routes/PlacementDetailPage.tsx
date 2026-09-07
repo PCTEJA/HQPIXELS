@@ -20,6 +20,7 @@ import { useDashboard } from '../lib/queries';
 import { useSession } from '../lib/session';
 import { formatCents, formatCount, formatDateTime } from '../lib/format';
 import { Alert, Badge, Button, EmptyState, TextField } from '../components/primitives';
+import { RemoveHoldButton } from '../components/RemoveHoldButton';
 
 interface EditResponse {
   readonly updated: boolean;
@@ -145,6 +146,12 @@ export function PlacementDetailPage(): React.JSX.Element {
           </a>
         )}
       </div>
+
+      {['draft', 'reserved', 'ready_for_checkout'].includes(placement.state) && (
+        <section className="glass mt-6 p-5">
+          <RemoveHoldButton reservationId={placement.reservationId} />
+        </section>
+      )}
 
       {/* --- immutable facts ------------------------------------------------ */}
       <section aria-labelledby="facts-heading" className="glass mt-6 p-5">

@@ -289,6 +289,10 @@ export interface Db {
     graceSeconds: number,
     limit: number,
   ): Promise<{ ok: boolean; reservationsExpired: number; cellsReleased: number }>;
+  cancelReservation(
+    reservationId: string,
+    ownerId: string,
+  ): Promise<RpcResult<{ cellsReleased: number }>>;
   releaseReservation(
     reservationId: string,
     newState: ReservationState,
@@ -533,6 +537,8 @@ export function createDb(rpc: RpcCaller): Db {
     expireReservations: (graceSeconds, limit) =>
       rpc('expire_reservations', { p_grace_seconds: graceSeconds, p_limit: limit }),
 
+    cancelReservation: (reservationId, ownerId) =>
+      rpc('cancel_reservation', { p_reservation_id: reservationId, p_owner_id: ownerId }),
     releaseReservation: (reservationId, newState, reason) =>
       rpc('release_reservation', {
         p_reservation_id: reservationId,

@@ -52,6 +52,36 @@ it('creates checkout without an unsupported Managed Payments descriptor', async 
 });
 
 const holdId = '48cf1b20-129b-441f-88d9-65211272a98f';
+
+it('releases the authenticated owner hold and returns a non-cacheable response', async () => {
+  const { app, deps } = previewApp(true);
+  const cancel = vi.fn().mockResolvedValue({ ok: true, cellsReleased: 1 });
+  deps.db.cancelReservation = cancel;
+  const response = await app.request(`/api/reservations/${holdId}/cancel`, { method: 'POST' });
+  expect(response.status).toBe(200);
+  expect(await response.json()).toEqual({ removed: true, cellsReleased: 1 });
+  expect(response.headers.get('Cache-Control')).toContain('no-store');
+  expect(cancel).toHaveBeenCalledWith(holdId, 'owner');
+});
+
+it.each(['not_found', 'reservation_state_invalid'])(
+  'does not report removal for %s',
+  async (code) => {
+    const { app, deps } = previewApp(true);
+    deps.db.cancelReservation = vi.fn().mockResolvedValue({ ok: false, code });
+    const response = await app.request(`/api/reservations/${holdId}/cancel`, { method: 'POST' });
+    expect(response.status).toBe(code === 'not_found' ? 404 : 409);
+  },
+);
+
+it('requires authentication to remove a hold', async () => {
+  const { app, deps } = previewApp(true, false);
+  const cancel = vi.fn();
+  deps.db.cancelReservation = cancel;
+  const response = await app.request(`/api/reservations/${holdId}/cancel`, { method: 'POST' });
+  expect(response.status).toBe(401);
+  expect(cancel).not.toHaveBeenCalled();
+});
 const png = Uint8Array.from(
   Buffer.from(
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=',

@@ -45,6 +45,7 @@ import { WallSurface } from '../components/wall/WallSurface';
 import { Alert, Button, Checkbox, LiveRegion, TextField } from '../components/primitives';
 import { Turnstile, resetTurnstile } from '../components/Turnstile';
 import { SignInDialog } from '../components/SignInDialog';
+import { RemoveHoldButton } from '../components/RemoveHoldButton';
 
 type Step = 'choose' | 'preview' | 'pay';
 
@@ -184,6 +185,21 @@ export function ClaimPage(): React.JSX.Element {
             setParams({}, { replace: true });
           }}
         />
+      )}
+
+      {existingReservationId !== null && step !== 'choose' && (
+        <section className="glass mt-6 p-5">
+          <RemoveHoldButton
+            key={existingReservationId}
+            reservationId={existingReservationId}
+            onRemoved={() => {
+              setStep('choose');
+              setSelection(null);
+              setParams({}, { replace: true });
+              setAnnouncement('Hold removed. Your plot is available to claim again.');
+            }}
+          />
+        </section>
       )}
 
       <SignInDialog open={signInOpen} onClose={() => setSignInOpen(false)} redirectPath="/claim" />

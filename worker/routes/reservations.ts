@@ -34,6 +34,25 @@ export const reservationRoutes = new Hono<AppEnv>();
 /** The terms version a buyer must accept. Bump when the terms change materially. */
 export const CURRENT_TERMS_VERSION = '2026-08-01';
 
+reservationRoutes.post('/:reservationId/cancel', async (c) => {
+  const user = await requireVerifiedUser(c);
+  const parsed = reservationIdParamSchema.safeParse({
+    reservationId: c.req.param('reservationId'),
+  });
+  if (!parsed.success) throw new ApiError('not_found');
+  const result = await c.get('deps').db.cancelReservation(parsed.data.reservationId, user.id);
+  if (!isOk(result)) {
+    if (result.code === 'not_found') throw new ApiError('not_found');
+    throw new ApiError('reservation_state_invalid', {
+      message:
+        'This hold cannot be removed while checkout or payment is underway. Wait for checkout to expire and refresh the page.',
+    });
+  }
+  return c.json({ removed: true, cellsReleased: result.cellsReleased }, 200, {
+    'Cache-Control': NO_STORE,
+  });
+});
+
 // -----------------------------------------------------------------------------
 // POST /api/reservations
 // -----------------------------------------------------------------------------
