@@ -121,6 +121,11 @@ export async function createCheckoutSession(
   const session = await stripe.checkout.sessions.create(
     {
       mode: 'payment',
+      // This integration uses standard Checkout. Account-level Managed Payments
+      // defaults otherwise reject our card-only payment methods and invoices.
+      // Stripe 17's types predate this parameter; spreading keeps the rest of
+      // the request checked against the pinned SDK without an unsafe cast.
+      ...{ managed_payments: { enabled: false } },
       // Card only for MVP. Adding async methods (bank debits) requires handling
       // checkout.session.async_payment_* — the webhook already does, but the
       // reservation TTL would need revisiting, so it stays off until then.
@@ -172,7 +177,9 @@ export async function createCheckoutSession(
     },
     {
       // The whole duplicate-charge defence, in one line.
-      idempotencyKey: `hqpixels:checkout:${input.reservationId}:${input.checkoutAttempt}`,
+      // Version the payload so Stripe cannot replay the cached Managed Payments
+      // rejection from the previous request shape. Retries still share one key.
+      idempotencyKey: `hqpixels:checkout:${input.reservationId}:${input.checkoutAttempt}:standard-v1`,
     },
   );
 

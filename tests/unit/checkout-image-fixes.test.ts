@@ -18,7 +18,7 @@ it('removes dashboard image and variant placeholders from the delivery base', ()
   ).toBe('https://imagedelivery.net/account');
 });
 
-it('creates checkout without an unsupported Managed Payments descriptor', async () => {
+it('explicitly uses standard card Checkout despite account Managed Payments defaults', async () => {
   const expires = Math.floor(Date.now() / 1000) + 2400;
   const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(
     Response.json({
@@ -47,8 +47,12 @@ it('creates checkout without an unsupported Managed Payments descriptor', async 
   if (typeof init?.body !== 'string') throw new Error('Expected form-encoded Stripe request');
   const body = new URLSearchParams(init.body);
   expect(body.has('payment_intent_data[statement_descriptor_suffix]')).toBe(false);
+  expect(body.get('managed_payments[enabled]')).toBe('false');
+  expect(body.get('payment_method_types[0]')).toBe('card');
   expect(body.get('line_items[0][price_data][unit_amount]')).toBe('1000');
-  expect(new Headers(init?.headers).get('Idempotency-Key')).toBe('hqpixels:checkout:hold:1');
+  expect(new Headers(init?.headers).get('Idempotency-Key')).toBe(
+    'hqpixels:checkout:hold:1:standard-v1',
+  );
 });
 
 const holdId = '48cf1b20-129b-441f-88d9-65211272a98f';
