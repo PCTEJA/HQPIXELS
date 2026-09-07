@@ -258,7 +258,17 @@ export function WallSurface({
 
       {/* --- canvas + keyboard layer ---------------------------------------- */}
       <div
-        className={`relative overflow-hidden rounded-card border border-hairline ${heightClass}`}
+        role="application"
+        aria-label={
+          mode === 'select'
+            ? 'Pixel wall, selection mode. Use the arrow keys to move, hold Shift and press an arrow key to select an area, then press Enter.'
+            : 'Pixel wall. Use the arrow keys to move between units and press Enter to open a placement.'
+        }
+        aria-describedby="wall-keyboard-help"
+        tabIndex={0}
+        onKeyDown={handleKeyDown}
+        onPointerDownCapture={(event) => event.currentTarget.focus({ preventScroll: true })}
+        className={`relative overflow-hidden rounded-card border border-hairline outline-offset-[-3px] ${heightClass}`}
       >
         <div ref={sizeRef} className="absolute inset-0">
           {width > 0 && height > 0 && (
@@ -294,23 +304,6 @@ export function WallSurface({
             </Suspense>
           )}
         </div>
-
-        {/*
-          The focusable keyboard surface. Sits over the canvas, has no background,
-          and carries the accessible name and instructions the canvas cannot.
-        */}
-        <div
-          role="application"
-          aria-label={
-            mode === 'select'
-              ? 'Pixel wall, selection mode. Use the arrow keys to move, hold Shift and press an arrow key to select an area, then press Enter.'
-              : 'Pixel wall. Use the arrow keys to move between units and press Enter to open a placement.'
-          }
-          aria-describedby="wall-keyboard-help"
-          tabIndex={0}
-          onKeyDown={handleKeyDown}
-          className="absolute inset-0 outline-offset-[-3px]"
-        />
 
         {/* --- hover card --------------------------------------------------- */}
         {hovered !== null && (
