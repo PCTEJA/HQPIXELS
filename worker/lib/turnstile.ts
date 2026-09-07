@@ -76,13 +76,16 @@ export async function verifyTurnstile(input: TurnstileVerifyInput): Promise<Turn
   body.append('secret', secret);
   body.append('response', token);
   if (remoteIp) body.append('remoteip', remoteIp);
-  // An idempotency key lets us detect a replayed token: Cloudflare returns
-  // timeout-or-duplicate if the same token is verified twice.
-  body.append('idempotency_key', `${action}:${token.slice(0, 32)}`);
+  // Tokens are already single-use. We do not retry Siteverify here, so omit
+  // its optional UUID idempotency key; a token-derived string is rejected.
 
   let payload: SiteverifyResponse;
   try {
-    const response = await doFetch(SITEVERIFY_URL, { method: 'POST', body });
+    const response = await doFetch(SITEVERIFY_URL, {
+      method: 'POST',
+      body,
+      signal: AbortSignal.timeout(10_000),
+    });
     if (!response.ok) return { ok: false, reason: 'upstream_error' };
     payload = await response.json();
   } catch {
@@ -106,20 +109,21 @@ export async function verifyTurnstile(input: TurnstileVerifyInput): Promise<Turn
   if (!isTestSecret) {
     // Action binding: a token obtained from the cheap sign-in widget must not be
     // usable to create a Checkout Session.
-    if (payload.action !== undefined && payload.action !== action) {
+    if (payload.action !== action) {
       return { ok: false, reason: 'action_mismatch' };
     }
 
     // Hostname binding: rejects a token minted on a Turnstile site the attacker
     // controls.
-    if (payload.hostname !== undefined) {
-      const hostname = payload.hostname.toLowerCase();
-      const allowed = expectedHostnames.some((h) => {
-        const expected = h.toLowerCase();
-        return hostname === expected || hostname === `www.${expected}`;
-      });
-      if (!allowed) return { ok: false, reason: 'hostname_mismatch' };
+    if (typeof payload.hostname !== 'string') {
+      return { ok: false, reason: 'hostname_mismatch' };
     }
+    const hostname = payload.hostname.toLowerCase();
+    const allowed = expectedHostnames.some((h) => {
+      const expected = h.toLowerCase();
+      return hostname === expected || hostname === `www.${expected}`;
+    });
+    if (!allowed) return { ok: false, reason: 'hostname_mismatch' };
   }
 
   return {

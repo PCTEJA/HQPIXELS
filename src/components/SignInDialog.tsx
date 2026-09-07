@@ -13,7 +13,7 @@
 import { useState } from 'react';
 import { api, ApiRequestError } from '../lib/api';
 import { Alert, Button, Dialog, TextField } from './primitives';
-import { Turnstile, resetTurnstile } from './Turnstile';
+import { Turnstile } from './Turnstile';
 
 export interface SignInDialogProps {
   readonly open: boolean;
@@ -28,6 +28,7 @@ export function SignInDialog({
 }: SignInDialogProps): React.JSX.Element {
   const [email, setEmail] = useState('');
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [verificationAttempt, setVerificationAttempt] = useState(0);
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -58,6 +59,7 @@ export function SignInDialog({
 
   const sendMagicLink = async (event: React.FormEvent): Promise<void> => {
     event.preventDefault();
+    if (sending) return;
     setError(null);
     setFieldError(undefined);
 
@@ -78,13 +80,14 @@ export function SignInDialog({
       if (caught instanceof ApiRequestError) {
         setFieldError(caught.fields?.email);
         setError(caught.fields?.email === undefined ? caught.message : null);
-        // A used token cannot be reused, so always get a fresh one for a retry.
-        resetTurnstile();
-        setTurnstileToken(null);
       } else {
         setError('We could not send that link. Please try again.');
       }
     } finally {
+      // Remount only this form's widget. A global reset may target a claim
+      // widget behind the dialog and leave this form holding a used token.
+      setTurnstileToken(null);
+      setVerificationAttempt((attempt) => attempt + 1);
       setSending(false);
     }
   };
@@ -94,6 +97,8 @@ export function SignInDialog({
     setSent(false);
     setError(null);
     setFieldError(undefined);
+    setTurnstileToken(null);
+    setVerificationAttempt((attempt) => attempt + 1);
     onClose();
   };
 
@@ -169,7 +174,7 @@ export function SignInDialog({
               hint="We will email you a one-time sign-in link."
             />
 
-            <Turnstile action="signin" onToken={setTurnstileToken} />
+            <Turnstile key={verificationAttempt} action="signin" onToken={setTurnstileToken} />
 
             <Button
               type="submit"
