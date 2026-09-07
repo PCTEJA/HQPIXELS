@@ -30,5 +30,16 @@ pnpm-debug.log*
 !.vscode/extensions.json
 !.vscode/settings.recommended.json
 
-# Project specific
+# Project specific — sensitive docs (repo is public)
 HANDOFF.md
+DEPLOYMENT.md
+COSTS.md
+ARCHITECTURE.md
+PRD.md
+LAUNCH_BLOCKERS.md
+HQPIXELS_DEPLOYMENT_STATUS_*.md
+THREAT_MODEL.md
+SECURITY.md
+RUNBOOK.md
+STRIPE_SETUP.md
+.github/BRANCH_PROTECTION.md

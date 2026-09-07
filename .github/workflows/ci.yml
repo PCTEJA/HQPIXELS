@@ -12,7 +12,6 @@ concurrency:
 
 env:
   NODE_VERSION: '22'
-  PNPM_VERSION: '9'
 
 jobs:
   lint-format:
@@ -24,8 +23,6 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -51,8 +48,6 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -81,8 +76,6 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -101,7 +94,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:17
+        image: itheory/pgtap:17-pg17
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -118,15 +111,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install pgTAP
+      - name: Install pgTAP client tools
         run: |
           sudo apt-get update
           sudo apt-get install -y postgresql-client libtap-parser-sourcehandler-pgtap-perl
-          # Install pgTAP extension
-          git clone --depth 1 https://github.com/theory/pgtap.git /tmp/pgtap
-          cd /tmp/pgtap
-          make
-          sudo make install
 
       - name: Create pgTAP extension in database
         env:
@@ -174,8 +162,6 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -233,17 +219,8 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Generate headers
-        run: node scripts/generate-headers.mjs > /tmp/_headers
-
-      - name: Check for drift
-        run: |
-          if ! diff -q public/_headers /tmp/_headers > /dev/null 2>&1; then
-            echo "::error::public/_headers differs from generated output. Run 'node scripts/generate-headers.mjs > public/_headers' and commit."
-            diff public/_headers /tmp/_headers || true
-            exit 1
-          fi
-          echo "Headers file is up to date."
+      - name: Check for headers drift
+        run: node scripts/generate-headers.mjs --check
 
   security-audit:
     name: Security Audit
@@ -254,8 +231,6 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
