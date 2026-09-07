@@ -81,19 +81,28 @@ export function useCountdown(expiresAt: string | null): {
   expired: boolean;
 } {
   const visible = useDocumentVisible();
-  const [secondsRemaining, setSecondsRemaining] = useState(() =>
-    expiresAt === null ? 0 : secondsUntil(expiresAt),
-  );
+  const [countdown, setCountdown] = useState(() => ({
+    expiresAt,
+    secondsRemaining: expiresAt === null ? 0 : secondsUntil(expiresAt),
+  }));
+  // A newly fetched expiry must not inherit the previous (often zero) count
+  // for one render: consumers may release the hold when `expired` is true.
+  const secondsRemaining =
+    countdown.expiresAt === expiresAt
+      ? countdown.secondsRemaining
+      : expiresAt === null
+        ? 0
+        : secondsUntil(expiresAt);
 
   useEffect(() => {
     if (expiresAt === null) {
-      setSecondsRemaining(0);
+      setCountdown({ expiresAt, secondsRemaining: 0 });
       return;
     }
 
     // Recompute from the clock rather than decrementing, so a paused tab or a
     // sleeping laptop does not leave the timer showing a stale value.
-    const tick = (): void => setSecondsRemaining(secondsUntil(expiresAt));
+    const tick = (): void => setCountdown({ expiresAt, secondsRemaining: secondsUntil(expiresAt) });
     tick();
 
     if (!visible) return;

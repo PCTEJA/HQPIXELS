@@ -85,9 +85,50 @@ try {
   await expect(page.getByText('1 x 1 units (10 x 10 pixels)', { exact: true })).toBeVisible();
   await page.keyboard.press('Shift+ArrowRight');
   await expect(page.getByText('2 x 1 units (20 x 10 pixels)', { exact: true })).toBeVisible();
+  await page.route('https://wall.test/api/reservations/test-hold', async (route) => {
+    // Let the preview mount before the hold arrives to exercise the countdown.
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    await route.fulfill({
+      json: {
+        reservation: {
+          id: 'test-hold',
+          state: 'reserved',
+          x: 0,
+          y: 0,
+          w: 5,
+          h: 5,
+          totalCents: 2500,
+          expiresAt: new Date(Date.now() + 2700000).toISOString(),
+        },
+        placement: {
+          id: 'test-placement',
+          title: '',
+          altText: '',
+          destinationUrl: null,
+          imageUrl: null,
+        },
+      },
+    });
+  });
+  await page.goto('https://wall.test/claim?reservation=test-hold');
+  await expect(page.getByRole('heading', { name: 'Your artwork and link' })).toBeVisible();
+  await expect(page).toHaveURL('https://wall.test/claim?reservation=test-hold');
+  await page.getByRole('link', { name: 'Claim your plot', exact: true }).first().click();
+  await expect(page).toHaveURL('https://wall.test/claim');
+  await expect(wall).toBeVisible();
+  await page.route('https://wall.test/api/reservations/missing-hold', (route) =>
+    route.fulfill({
+      status: 404,
+      json: { error: { code: 'not_found', message: 'Hold not found.' } },
+    }),
+  );
+  await page.goto('https://wall.test/claim?reservation=missing-hold');
+  await expect(page.getByText('We could not find that hold')).toBeVisible();
+  await page.getByRole('link', { name: 'Start a new selection' }).click();
+  await expect(wall).toBeVisible();
   assert.deepEqual(errors, []);
   console.log(
-    'PASS: production wall renders and zooms under strict CSP; mouse click, drag, and keyboard selection work; page view carries CSRF.',
+    'PASS: wall selection, preview with delayed hold, new-claim navigation, missing-hold recovery, and strict CSP.',
   );
 } finally {
   await browser.close();

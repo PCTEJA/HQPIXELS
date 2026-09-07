@@ -58,7 +58,10 @@ export function ClaimPage(): React.JSX.Element {
 
   const existingReservationId = params.get('reservation');
 
-  const [step, setStep] = useState<Step>('choose');
+  const [requestedStep, setStep] = useState<Step>('preview');
+  // Navigation can remove the hold without remounting this page. Never show
+  // a preview/pay heading when there is no reservation to render beneath it.
+  const step = existingReservationId === null ? 'choose' : requestedStep;
   const [selection, setSelection] = useState<{ x: number; y: number; w: number; h: number } | null>(
     null,
   );
