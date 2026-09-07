@@ -117,16 +117,9 @@ authRoutes.post('/magic-link', async (c) => {
         policy: 'authStart',
         keyKind: key.startsWith('ip:') ? 'ip' : 'email',
       });
-      // Same generic response as success, so this is not an oracle for whether
-      // an address is registered or rate limited.
-      return c.json(
-        {
-          sent: true,
-          message: 'If that address can sign in, a link is on its way. Check your inbox.',
-        },
-        202,
-        { 'Cache-Control': NO_STORE },
-      );
+      // This limit applies to every submitted address, regardless of whether
+      // it has an account. Do not claim an email was sent when we skipped it.
+      throw new ApiError('rate_limited', { retryAfter: decision.retryAfter });
     }
   }
 
@@ -145,9 +138,19 @@ authRoutes.post('/magic-link', async (c) => {
   });
 
   if (error) {
-    // Logged, never surfaced: the error text distinguishes "no such user" from
-    // "rate limited by the mail provider", and both are useful to an attacker.
-    logger.warn('magic_link_send_failed', { reason: error.message.slice(0, 200) });
+    logger.warn('magic_link_send_failed', {
+      reason: error.message.slice(0, 200),
+      code: error.code,
+      status: error.status,
+    });
+    // Operational failures must not masquerade as a sent email. Keep the
+    // provider's diagnostic private and expose only a generic delivery error.
+    if (error.status === 429) {
+      throw new ApiError('rate_limited', { retryAfter: 60 });
+    }
+    throw new ApiError('upstream_unavailable', {
+      message: 'We could not send a sign-in email. Please try Google sign-in or try again later.',
+    });
   }
 
   audit(auditCtx, {
@@ -155,11 +158,11 @@ authRoutes.post('/magic-link', async (c) => {
     targetType: 'email',
     // The hash, not the address: the audit log should not become a mailing list.
     targetId: emailKey,
-    detail: { delivered: !error, redirectTo: target },
+    detail: { acceptedByProvider: true, redirectTo: target },
   });
 
-  // Always the same answer. Account enumeration is prevented by the response
-  // being identical whether or not the address exists.
+  // The provider accepted the request; this does not confirm inbox delivery.
+  // Existing and newly created accounts receive the same response.
   return c.json(
     { sent: true, message: 'If that address can sign in, a link is on its way. Check your inbox.' },
     202,
@@ -199,11 +202,12 @@ authRoutes.post('/oauth/start', async (c) => {
   const { data, error } = await client.auth.signInWithOAuth({
     provider,
     options: {
-      redirectTo: `${deps.config.siteUrl}/api/auth/callback?next=${encodeURIComponent(target)}`,
+      redirectTo: `${deps.config.siteUrl}/api/auth/callback?flow=oauth&app_state=${encodeURIComponent(state)}`,
       // Supabase stores the PKCE verifier through our cookie jar, so it lands in
       // an HttpOnly cookie rather than anywhere JavaScript can read.
       skipBrowserRedirect: true,
-      queryParams: { state },
+      // Supabase owns the provider's OAuth state. Overriding it through
+      // queryParams makes its callback reject with bad_oauth_state.
     },
   });
 
@@ -252,9 +256,9 @@ authRoutes.get('/callback', async (c) => {
 
   const url = new URL(c.req.url);
   const code = url.searchParams.get('code');
-  const state = url.searchParams.get('state');
+  const state = url.searchParams.get('app_state') ?? url.searchParams.get('state');
   const errorParam = url.searchParams.get('error');
-  const next = safeRedirectPath(url.searchParams.get('next'));
+  let next = safeRedirectPath(url.searchParams.get('next'));
 
   const failRedirect = (reason: string): Response => {
     logger.info('auth_callback_failed', { reason });
@@ -276,10 +280,11 @@ authRoutes.get('/callback', async (c) => {
 
   // OAuth flows carry a state; magic-link flows do not. Validate it when present
   // and require the nonce cookie to match.
-  if (state !== null) {
+  if (url.searchParams.get('flow') === 'oauth' || state !== null) {
     const nonce = readCookie(c.req.raw, COOKIE_OAUTH_FLOW);
     const verified = await verifyOAuthState(deps.config.signingSecret, state, nonce);
     if (!verified.ok) return failRedirect(verified.reason);
+    next = verified.redirectPath;
   }
 
   const jar = c.get('cookieJar');

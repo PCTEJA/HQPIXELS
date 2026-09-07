@@ -104,6 +104,8 @@ export class CookieJar {
   }
 
   set(name: string, value: string, options: CookieOptions = {}): void {
+    if (options.maxAge === 0) this.incoming.delete(name);
+    else this.incoming.set(name, value);
     // Force our security posture regardless of what the library asks for.
     // Supabase's defaults are reasonable but we do not want them to be the
     // authority on HttpOnly/Secure for a session cookie.
@@ -119,6 +121,7 @@ export class CookieJar {
   }
 
   remove(name: string): void {
+    this.incoming.delete(name);
     this.pending.push(
       serializeCookie(name, 'x', {
         httpOnly: true,
