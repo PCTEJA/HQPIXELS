@@ -134,6 +134,8 @@ export interface ApiRequestOptions {
   readonly method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
   readonly body?: unknown;
   readonly signal?: AbortSignal;
+  /** Allow analytics requests to finish when the page unloads. */
+  readonly keepalive?: boolean;
   /** Sends If-None-Match, and resolves to `notModified` on a 304. */
   readonly ifNoneMatch?: string | null;
   /** Internal: prevents an infinite refresh/retry loop. */
@@ -178,6 +180,7 @@ export async function apiRequest<T>(
       // Sends cookies to our own origin, and only our own origin.
       credentials: 'same-origin',
       headers,
+      ...(options.keepalive ? { keepalive: true } : {}),
       ...(options.body !== undefined ? { body: JSON.stringify(options.body) } : {}),
       ...(options.signal ? { signal: options.signal } : {}),
       // Never let a browser cache a mutation or an authenticated read.
@@ -270,12 +273,11 @@ export const api = {
 export function beacon(path: string, body: unknown): void {
   if (typeof fetch === 'undefined') return;
 
-  void fetch(path, {
-    method: 'POST',
-    credentials: 'same-origin',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-    keepalive: true,
-    cache: 'no-store',
-  }).catch(() => undefined);
+  const send = async (): Promise<void> => {
+    // The first page view can precede session bootstrap. Obtain the token
+    // before posting, then use the same stale-token recovery as other mutations.
+    if ((csrfToken ?? readCsrfCookie()) === null) await refreshSession();
+    await apiRequest(path, { method: 'POST', body, keepalive: true });
+  };
+  void send().catch(() => undefined);
 }

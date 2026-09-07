@@ -348,6 +348,9 @@ export function WallCanvas(props: WallCanvasProps): React.JSX.Element {
 
       try {
         const pixi = await import('pixi.js');
+        // Install static shader/uniform synchronizers for our CSP, which
+        // deliberately disallows new Function / unsafe-eval.
+        await import('pixi.js/unsafe-eval');
         if (cancelled) return;
 
         application = new pixi.Application();
