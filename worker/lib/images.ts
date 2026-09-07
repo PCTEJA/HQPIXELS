@@ -358,8 +358,10 @@ class CloudflareImagesClient implements ImageClient {
     let size = 0;
     try {
       while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+        const result = await reader.read();
+        if (result.done) break;
+        const value: unknown = result.value;
+        if (!(value instanceof Uint8Array)) throw new Error('Invalid image preview stream');
         size += value.byteLength;
         if (size > MAX_UPLOAD_BYTES) {
           await reader.cancel();

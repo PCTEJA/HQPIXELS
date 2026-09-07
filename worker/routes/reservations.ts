@@ -403,7 +403,7 @@ reservationRoutes.get('/:reservationId/artwork', async (c) => {
   const bytes = await deps.images.fetchPreview(imageId);
   const image = sniffImage(bytes);
   if (!image.ok) throw new ApiError('unsupported_media_type');
-  return new Response(bytes, {
+  return new Response(new Uint8Array(bytes).buffer, {
     headers: {
       'Content-Type': image.mime,
       'Cache-Control': NO_STORE,
