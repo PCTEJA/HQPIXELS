@@ -345,7 +345,9 @@ export interface ImageClient {
 class CloudflareImagesClient implements ImageClient {
   constructor(
     private readonly config: AppConfig,
-    private readonly fetchImpl: typeof fetch = fetch,
+    // Native Workers fetch requires its global receiver, even when stored on
+    // a client instance for dependency injection.
+    private readonly fetchImpl: typeof fetch = globalThis.fetch.bind(globalThis),
   ) {}
 
   private get base(): string {
